@@ -1,0 +1,1031 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		3BF30D090FB32892ADC4074F /* ScreenTimeInsightsReportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C49A3923B1CA4560694088 /* ScreenTimeInsightsReportModels.swift */; };
+		41E9351DBDB302000B8ACCE8 /* OnlyLockReportExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = A2AC3C97C9681A28367E2E3B /* OnlyLockReportExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9033AD7C08B0DE9FE5A275DB /* OnlyLockReportExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF504F2DD9C492411256ADD5 /* OnlyLockReportExtension.swift */; };
+		9EFA6EBE9C8740663520D0D4 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43CF10B0E3B00760FA759746 /* Foundation.framework */; };
+		AC10000E2F6D76EB002663E9 /* OnlyLockMonitorExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AC1000012F6D76EB002663E9 /* OnlyLockMonitorExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AC10000F2F6D76EB002663E9 /* OnlyLockShieldActionExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AC1000022F6D76EB002663E9 /* OnlyLockShieldActionExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B10000E12F6D76EB002663E9 /* OnlyLockWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B10000112F6D76EB002663E9 /* OnlyLockWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		12DFB85E97A700475B38C002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB2C8B302F6D76EB002663E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C991776073E2B2E9D4260BA;
+			remoteInfo = OnlyLockReportExtension;
+		};
+		AC1000122F6D76EB002663E9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB2C8B302F6D76EB002663E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC1000102F6D76EB002663E9;
+			remoteInfo = OnlyLockMonitorExtension;
+		};
+		AC1000132F6D76EB002663E9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB2C8B302F6D76EB002663E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC1000112F6D76EB002663E9;
+			remoteInfo = OnlyLockShieldActionExtension;
+		};
+		B10001212F6D76EB002663E9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB2C8B302F6D76EB002663E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B10001012F6D76EB002663E9;
+			remoteInfo = OnlyLockWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0D4A5D5E3F9C4100A1B2C3D4 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				41E9351DBDB302000B8ACCE8 /* OnlyLockReportExtension.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC10000D2F6D76EB002663E9 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B10000E12F6D76EB002663E9 /* OnlyLockWidgetExtension.appex in Embed App Extensions */,
+				AC10000E2F6D76EB002663E9 /* OnlyLockMonitorExtension.appex in Embed App Extensions */,
+				AC10000F2F6D76EB002663E9 /* OnlyLockShieldActionExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		3BC7137BDEFDFA3A758CCC78 /* OnlyLockReportExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = OnlyLockReportExtension.entitlements; sourceTree = "<group>"; };
+		43CF10B0E3B00760FA759746 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		8C30523C0F2F625C938FDCFB /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A2AC3C97C9681A28367E2E3B /* OnlyLockReportExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = OnlyLockReportExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB2C8B382F6D76EB002663E9 /* OnlyLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnlyLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC1000012F6D76EB002663E9 /* OnlyLockMonitorExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnlyLockMonitorExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC1000022F6D76EB002663E9 /* OnlyLockShieldActionExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnlyLockShieldActionExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AF504F2DD9C492411256ADD5 /* OnlyLockReportExtension.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = OnlyLockReportExtension.swift; sourceTree = "<group>"; };
+		B10000112F6D76EB002663E9 /* OnlyLockWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OnlyLockWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5C49A3923B1CA4560694088 /* ScreenTimeInsightsReportModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ScreenTimeInsightsReportModels.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AB2C8B482F6D76EC002663E9 /* Exceptions for "OnlyLock" folder in "OnlyLock" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AB2C8B372F6D76EB002663E9 /* OnlyLock */;
+		};
+		AC1000052F6D76EB002663E9 /* Exceptions for "OnlyLockMonitorExtension" folder in "OnlyLockMonitorExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AC1000102F6D76EB002663E9 /* OnlyLockMonitorExtension */;
+		};
+		AC1000062F6D76EB002663E9 /* Exceptions for "OnlyLockShieldActionExtension" folder in "OnlyLockShieldActionExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AC1000112F6D76EB002663E9 /* OnlyLockShieldActionExtension */;
+		};
+		B10000512F6D76EB002663E9 /* Exceptions for "OnlyLockWidgetExtension" folder in "OnlyLockWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B10001012F6D76EB002663E9 /* OnlyLockWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AB2C8B3A2F6D76EB002663E9 /* OnlyLock */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AB2C8B482F6D76EC002663E9 /* Exceptions for "OnlyLock" folder in "OnlyLock" target */,
+			);
+			path = OnlyLock;
+			sourceTree = "<group>";
+		};
+		AC1000032F6D76EB002663E9 /* OnlyLockMonitorExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC1000052F6D76EB002663E9 /* Exceptions for "OnlyLockMonitorExtension" folder in "OnlyLockMonitorExtension" target */,
+			);
+			path = OnlyLockMonitorExtension;
+			sourceTree = "<group>";
+		};
+		AC1000042F6D76EB002663E9 /* OnlyLockShieldActionExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC1000062F6D76EB002663E9 /* Exceptions for "OnlyLockShieldActionExtension" folder in "OnlyLockShieldActionExtension" target */,
+			);
+			path = OnlyLockShieldActionExtension;
+			sourceTree = "<group>";
+		};
+		B10000312F6D76EB002663E9 /* OnlyLockWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B10000512F6D76EB002663E9 /* Exceptions for "OnlyLockWidgetExtension" folder in "OnlyLockWidgetExtension" target */,
+			);
+			path = OnlyLockWidgetExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7FF8B49431AE5F5ABAE51E0E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9EFA6EBE9C8740663520D0D4 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB2C8B352F6D76EB002663E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC1000082F6D76EB002663E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC10000B2F6D76EB002663E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000812F6D76EB002663E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		25FCC3A25969B3A4426694AE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7EB3C6C4EE8EC0B3A29FA2DE /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7EB3C6C4EE8EC0B3A29FA2DE /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				43CF10B0E3B00760FA759746 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		AB2C8B2F2F6D76EB002663E9 = {
+			isa = PBXGroup;
+			children = (
+				AB2C8B3A2F6D76EB002663E9 /* OnlyLock */,
+				AC1000032F6D76EB002663E9 /* OnlyLockMonitorExtension */,
+				AC1000042F6D76EB002663E9 /* OnlyLockShieldActionExtension */,
+				B10000312F6D76EB002663E9 /* OnlyLockWidgetExtension */,
+				AB2C8B392F6D76EB002663E9 /* Products */,
+				25FCC3A25969B3A4426694AE /* Frameworks */,
+				F41ACBF2D4BBFB6E591FFDA4 /* OnlyLockReportExtension */,
+			);
+			sourceTree = "<group>";
+		};
+		AB2C8B392F6D76EB002663E9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AB2C8B382F6D76EB002663E9 /* OnlyLock.app */,
+				AC1000012F6D76EB002663E9 /* OnlyLockMonitorExtension.appex */,
+				AC1000022F6D76EB002663E9 /* OnlyLockShieldActionExtension.appex */,
+				B10000112F6D76EB002663E9 /* OnlyLockWidgetExtension.appex */,
+				A2AC3C97C9681A28367E2E3B /* OnlyLockReportExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F41ACBF2D4BBFB6E591FFDA4 /* OnlyLockReportExtension */ = {
+			isa = PBXGroup;
+			children = (
+				AF504F2DD9C492411256ADD5 /* OnlyLockReportExtension.swift */,
+				D5C49A3923B1CA4560694088 /* ScreenTimeInsightsReportModels.swift */,
+				8C30523C0F2F625C938FDCFB /* Info.plist */,
+				3BC7137BDEFDFA3A758CCC78 /* OnlyLockReportExtension.entitlements */,
+			);
+			path = OnlyLockReportExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0C991776073E2B2E9D4260BA /* OnlyLockReportExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1AD4392A76AC586944E1773C /* Build configuration list for PBXNativeTarget "OnlyLockReportExtension" */;
+			buildPhases = (
+				85B1EFC897DF027D236E106B /* Sources */,
+				7FF8B49431AE5F5ABAE51E0E /* Frameworks */,
+				CC8B0AB03F8E7B8C4FCDE85E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OnlyLockReportExtension;
+			productName = OnlyLockReportExtension;
+			productReference = A2AC3C97C9681A28367E2E3B /* OnlyLockReportExtension.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		AB2C8B372F6D76EB002663E9 /* OnlyLock */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB2C8B492F6D76EC002663E9 /* Build configuration list for PBXNativeTarget "OnlyLock" */;
+			buildPhases = (
+				AB2C8B342F6D76EB002663E9 /* Sources */,
+				AB2C8B352F6D76EB002663E9 /* Frameworks */,
+				AB2C8B362F6D76EB002663E9 /* Resources */,
+				AC10000D2F6D76EB002663E9 /* Embed App Extensions */,
+				0D4A5D5E3F9C4100A1B2C3D4 /* Embed ExtensionKit Extensions */,
+				F8C0A1B22D9F4C1AA0010001 /* Force Embed Report ExtensionKit */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AC1000142F6D76EB002663E9 /* PBXTargetDependency */,
+				AC1000152F6D76EB002663E9 /* PBXTargetDependency */,
+				B10001412F6D76EB002663E9 /* PBXTargetDependency */,
+				63C21B0F5A6744EB6CBB5B1F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AB2C8B3A2F6D76EB002663E9 /* OnlyLock */,
+			);
+			name = OnlyLock;
+			productName = OnlyLock;
+			productReference = AB2C8B382F6D76EB002663E9 /* OnlyLock.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AC1000102F6D76EB002663E9 /* OnlyLockMonitorExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC1000182F6D76EB002663E9 /* Build configuration list for PBXNativeTarget "OnlyLockMonitorExtension" */;
+			buildPhases = (
+				AC1000072F6D76EB002663E9 /* Sources */,
+				AC1000082F6D76EB002663E9 /* Frameworks */,
+				AC1000092F6D76EB002663E9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC1000032F6D76EB002663E9 /* OnlyLockMonitorExtension */,
+			);
+			name = OnlyLockMonitorExtension;
+			productName = OnlyLockMonitorExtension;
+			productReference = AC1000012F6D76EB002663E9 /* OnlyLockMonitorExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AC1000112F6D76EB002663E9 /* OnlyLockShieldActionExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC10001B2F6D76EB002663E9 /* Build configuration list for PBXNativeTarget "OnlyLockShieldActionExtension" */;
+			buildPhases = (
+				AC10000A2F6D76EB002663E9 /* Sources */,
+				AC10000B2F6D76EB002663E9 /* Frameworks */,
+				AC10000C2F6D76EB002663E9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC1000042F6D76EB002663E9 /* OnlyLockShieldActionExtension */,
+			);
+			name = OnlyLockShieldActionExtension;
+			productName = OnlyLockShieldActionExtension;
+			productReference = AC1000022F6D76EB002663E9 /* OnlyLockShieldActionExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		B10001012F6D76EB002663E9 /* OnlyLockWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B10001812F6D76EB002663E9 /* Build configuration list for PBXNativeTarget "OnlyLockWidgetExtension" */;
+			buildPhases = (
+				B10000712F6D76EB002663E9 /* Sources */,
+				B10000812F6D76EB002663E9 /* Frameworks */,
+				B10000912F6D76EB002663E9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B10000312F6D76EB002663E9 /* OnlyLockWidgetExtension */,
+			);
+			name = OnlyLockWidgetExtension;
+			productName = OnlyLockWidgetExtension;
+			productReference = B10000112F6D76EB002663E9 /* OnlyLockWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AB2C8B302F6D76EB002663E9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					AB2C8B372F6D76EB002663E9 = {
+						CreatedOnToolsVersion = 26.3;
+						SystemCapabilities = {
+							com.apple.InAppPurchase = {
+								enabled = 1;
+							};
+						};
+					};
+					AC1000102F6D76EB002663E9 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					AC1000112F6D76EB002663E9 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					B10001012F6D76EB002663E9 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = AB2C8B332F6D76EB002663E9 /* Build configuration list for PBXProject "OnlyLock" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AB2C8B2F2F6D76EB002663E9;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AB2C8B392F6D76EB002663E9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AB2C8B372F6D76EB002663E9 /* OnlyLock */,
+				AC1000102F6D76EB002663E9 /* OnlyLockMonitorExtension */,
+				AC1000112F6D76EB002663E9 /* OnlyLockShieldActionExtension */,
+				B10001012F6D76EB002663E9 /* OnlyLockWidgetExtension */,
+				0C991776073E2B2E9D4260BA /* OnlyLockReportExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AB2C8B362F6D76EB002663E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC1000092F6D76EB002663E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC10000C2F6D76EB002663E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000912F6D76EB002663E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC8B0AB03F8E7B8C4FCDE85E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F8C0A1B22D9F4C1AA0010001 /* Force Embed Report ExtensionKit */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/OnlyLockReportExtension.appex",
+			);
+			name = "Force Embed Report ExtensionKit";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Extensions/OnlyLockReportExtension.appex",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\nSRC=\"${BUILT_PRODUCTS_DIR}/OnlyLockReportExtension.appex\"\nDST_DIR=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Extensions\"\nDST=\"${DST_DIR}/OnlyLockReportExtension.appex\"\nif [ ! -d \"$SRC\" ]; then\n  echo \"[Force Embed Report ExtensionKit] Missing source: $SRC\"\n  exit 0\nfi\nmkdir -p \"$DST_DIR\"\nrm -rf \"$DST\"\ncp -R \"$SRC/\" \"$DST\"\necho \"[Force Embed Report ExtensionKit] Embedded at $DST\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		85B1EFC897DF027D236E106B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9033AD7C08B0DE9FE5A275DB /* OnlyLockReportExtension.swift in Sources */,
+				3BF30D090FB32892ADC4074F /* ScreenTimeInsightsReportModels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB2C8B342F6D76EB002663E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC1000072F6D76EB002663E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC10000A2F6D76EB002663E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000712F6D76EB002663E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		63C21B0F5A6744EB6CBB5B1F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = OnlyLockReportExtension;
+			target = 0C991776073E2B2E9D4260BA /* OnlyLockReportExtension */;
+			targetProxy = 12DFB85E97A700475B38C002 /* PBXContainerItemProxy */;
+		};
+		AC1000142F6D76EB002663E9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC1000102F6D76EB002663E9 /* OnlyLockMonitorExtension */;
+			targetProxy = AC1000122F6D76EB002663E9 /* PBXContainerItemProxy */;
+		};
+		AC1000152F6D76EB002663E9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC1000112F6D76EB002663E9 /* OnlyLockShieldActionExtension */;
+			targetProxy = AC1000132F6D76EB002663E9 /* PBXContainerItemProxy */;
+		};
+		B10001412F6D76EB002663E9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B10001012F6D76EB002663E9 /* OnlyLockWidgetExtension */;
+			targetProxy = B10001212F6D76EB002663E9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		429E6C140C026DB785CA68B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockReportExtension/OnlyLockReportExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockReportExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockReportExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AB2C8B4A2F6D76EC002663E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OnlyLock/OnlyLock.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OnlyLock/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AB2C8B4B2F6D76EC002663E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OnlyLock/OnlyLock.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OnlyLock/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AB2C8B4C2F6D76EC002663E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AB2C8B4D2F6D76EC002663E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AC1000162F6D76EB002663E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockMonitorExtension/OnlyLockMonitorExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockMonitorExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockMonitorExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC1000172F6D76EB002663E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockMonitorExtension/OnlyLockMonitorExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockMonitorExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockMonitorExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AC1000192F6D76EB002663E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockShieldActionExtension/OnlyLockShieldActionExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockShieldActionExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockShieldActionExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC10001A2F6D76EB002663E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockShieldActionExtension/OnlyLockShieldActionExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockShieldActionExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockShieldActionExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B10001612F6D76EB002663E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockWidgetExtension/OnlyLockWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockWidgetExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		B10001712F6D76EB002663E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockWidgetExtension/OnlyLockWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockWidgetExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		E16D9B415E35D57D386589AD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = OnlyLockReportExtension/OnlyLockReportExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7439G9SY8;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = OnlyLockReportExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.OnlyLock.OnlyLockReportExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1AD4392A76AC586944E1773C /* Build configuration list for PBXNativeTarget "OnlyLockReportExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				429E6C140C026DB785CA68B2 /* Release */,
+				E16D9B415E35D57D386589AD /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB2C8B332F6D76EB002663E9 /* Build configuration list for PBXProject "OnlyLock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB2C8B4C2F6D76EC002663E9 /* Debug */,
+				AB2C8B4D2F6D76EC002663E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB2C8B492F6D76EC002663E9 /* Build configuration list for PBXNativeTarget "OnlyLock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB2C8B4A2F6D76EC002663E9 /* Debug */,
+				AB2C8B4B2F6D76EC002663E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AC1000182F6D76EB002663E9 /* Build configuration list for PBXNativeTarget "OnlyLockMonitorExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC1000162F6D76EB002663E9 /* Debug */,
+				AC1000172F6D76EB002663E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AC10001B2F6D76EB002663E9 /* Build configuration list for PBXNativeTarget "OnlyLockShieldActionExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC1000192F6D76EB002663E9 /* Debug */,
+				AC10001A2F6D76EB002663E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B10001812F6D76EB002663E9 /* Build configuration list for PBXNativeTarget "OnlyLockWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10001612F6D76EB002663E9 /* Debug */,
+				B10001712F6D76EB002663E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AB2C8B302F6D76EB002663E9 /* Project object */;
+}

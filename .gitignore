@@ -1,0 +1,17 @@
+.DS_Store
+
+# Xcode user/workspace state
+*.xcuserstate
+xcuserdata/
+
+# Build artifacts
+build/
+DerivedData/
+*.xcarchive
+*.dSYM
+*.ipa
+*.app
+
+# Swift package / module caches
+.build/
+SwiftExplicitPrecompiledModules/

@@ -1,0 +1,134 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "zh_Hans",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "05A20637-5EFB-4186-9F59-F24D034EA04A",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "18.00",
+      "familyShareable" : false,
+      "internalID" : "9AC1087E-F366-4E38-B4ED-95DB92E2BB5C",
+      "localizations" : [
+        {
+          "description" : "一次购买，永久解锁 OnlyLock 全部付费功能",
+          "displayName" : "终身会员",
+          "locale" : "zh_Hans"
+        }
+      ],
+      "productID" : "com.onlylock.membership.lifetime",
+      "referenceName" : "OnlyLock Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "zh_Hans",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "CHN",
+    "_storeKitErrors" : [
+      {
+        "current" : {
+          "index" : 2,
+          "type" : "generic"
+        },
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "A9F660DB-1993-4CB9-AC26-0A2B6A10AEE8",
+      "localizations" : [
+
+      ],
+      "name" : "OnlyLock Membership",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "8.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "F68AC45F-7EC1-4CD0-ABFD-7DA1AEC91957",
+          "introductoryOffer" : {
+            "displayPrice" : "0",
+            "internalID" : "D5173E1B-6610-45C8-9C1D-662CC5B9B6FC",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "解锁 OnlyLock 全部付费功能",
+              "displayName" : "月度会员",
+              "locale" : "zh_Hans"
+            }
+          ],
+          "productID" : "com.onlylock.membership.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "OnlyLock Monthly",
+          "subscriptionGroupID" : "A9F660DB-1993-4CB9-AC26-0A2B6A10AEE8",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

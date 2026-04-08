@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="true" userDefinedModelVersionIdentifier="">
+    <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="RewardEventEntity" representedClassName="RewardEventEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="eventID" optional="NO" attributeType="String" defaultValueString=""/>
+        <attribute name="ruleID" optional="YES" attributeType="String"/>
+        <attribute name="completedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="durationMinutes" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="isWeeklyRepeat" optional="NO" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="RewardProfileEntity" representedClassName="RewardProfileEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="profileID" optional="NO" attributeType="String" defaultValueString=""/>
+        <attribute name="totalXP" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="level" optional="NO" attributeType="Integer 16" defaultValueString="1" usesScalarValueType="YES"/>
+        <attribute name="currentStreak" optional="NO" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="bestStreak" optional="NO" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalCompletions" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="totalMinutes" optional="NO" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="lastComputedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="RewardBadgeEntity" representedClassName="RewardBadgeEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="badgeID" optional="NO" attributeType="String" defaultValueString=""/>
+        <attribute name="unlockedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <elements>
+        <element name="Item" positionX="-248" positionY="-50" width="128" height="44"/>
+        <element name="RewardEventEntity" positionX="16" positionY="-132" width="128" height="104"/>
+        <element name="RewardProfileEntity" positionX="252" positionY="-176" width="128" height="164"/>
+        <element name="RewardBadgeEntity" positionX="488" positionY="-74" width="128" height="59"/>
+    </elements>
+</model>
