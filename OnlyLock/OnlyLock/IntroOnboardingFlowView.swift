@@ -959,7 +959,7 @@ struct IntroOnboardingFlowView: View {
                 .opacity((paywallStore.isLoadingProducts || (!paywallStore.hasLoadedProducts && paywallStore.errorMessage != nil)) ? 0.72 : 1)
 
                 HStack(spacing: 0) {
-                    Link(AppLanguageRuntime.localized(for: "隐私政策"), destination: URL(string: "https://www.apple.com/legal/privacy/")!)
+                    Link(AppLanguageRuntime.localized(for: "隐私政策"), destination: URL(string: "https://vbin210327-real.github.io/OnlyLock/privacy/")!)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(secondaryText)
                         .frame(maxWidth: .infinity)
