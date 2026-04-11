@@ -127,7 +127,12 @@ private final class ShieldAttemptCounterStore {
         defaults = userDefaults ?? .standard
     }
 
-    func incrementAndRead(ruleID: UUID, targetID: String, now: Date) -> ShieldAttemptCounterSnapshot {
+    func incrementAndRead(
+        ruleID: UUID,
+        targetID: String,
+        now: Date,
+        wallClockNow: Date = Date()
+    ) -> ShieldAttemptCounterSnapshot {
         let key = composedKey(ruleID: ruleID, targetID: targetID)
 
         lock.lock()
@@ -147,10 +152,10 @@ private final class ShieldAttemptCounterStore {
             record.lastIncrementAt = nil
         }
 
-        if shouldIncrement(record: record, now: now) {
+        if shouldIncrement(record: record, wallClockNow: wallClockNow) {
             record.todayCount += 1
             record.totalCount += 1
-            record.lastIncrementAt = now
+            record.lastIncrementAt = wallClockNow
             records[key] = record
             persistRecords(records)
         }
@@ -158,9 +163,9 @@ private final class ShieldAttemptCounterStore {
         return ShieldAttemptCounterSnapshot(todayCount: record.todayCount, totalCount: record.totalCount)
     }
 
-    private func shouldIncrement(record: ShieldAttemptCounterRecord, now: Date) -> Bool {
+    private func shouldIncrement(record: ShieldAttemptCounterRecord, wallClockNow: Date) -> Bool {
         guard let last = record.lastIncrementAt else { return true }
-        return now.timeIntervalSince(last) >= 1.5
+        return wallClockNow.timeIntervalSince(last) >= 0.35
     }
 
     private func composedKey(ruleID: UUID, targetID: String) -> String {

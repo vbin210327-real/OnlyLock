@@ -33,12 +33,15 @@ enum OnlyLockShared {
 #if DEBUG
     static let debugTimeOverrideEnabledKey = "onlylock.debug.timeOverride.enabled"
     static let debugTimeOverrideTimestampKey = "onlylock.debug.timeOverride.timestamp"
+    static let debugWeeklyReportOverrideEnabledKey = "onlylock.debug.weeklyReport.override.enabled"
 #endif
     static let settingsNotificationsEnabledKey = "onlylock.settings.notificationsEnabled"
     static let settingsLockNotificationsEnabledKey = "onlylock.settings.lockNotificationsEnabled"
     static let settingsProfileNameKey = "onlylock.settings.profile.name"
     static let settingsProfileAvatarDataKey = "onlylock.settings.profile.avatarData"
     static let settingsAppearancePreferenceKey = "onlylock.settings.appearancePreference"
+    static let settingsResolvedAppearanceStyleKey = "onlylock.settings.appearanceResolvedStyle"
+    static let settingsShieldUseDarkAppearanceKey = "onlylock.settings.shieldUseDarkAppearance"
     static let appLanguageCodeKey = "onlylock.settings.appLanguageCode"
     static let hasCompletedWelcomeKey = "onlylock.welcome.completed"
     static let hasCompletedIntroOnboardingKey = "onlylock.onboarding.intro.completed"
@@ -57,6 +60,10 @@ enum OnlyLockShared {
     static let widgetLastCheckInDayTimestampKey = "onlylock.widget.lastCheckInDayTimestamp"
     static let screenTimeInsightsSnapshotKeyPrefix = "onlylock.screentime.insights."
     static let screenTimeInsightsDiagnosticKeyPrefix = "onlylock.screentime.diagnostic."
+#if DEBUG
+    static let debugScreenTimeInsightsOverrideEnabledKey = "onlylock.debug.screentime.override.enabled"
+    static let debugScreenTimeInsightsOverrideKeyPrefix = "onlylock.debug.screentime.override."
+#endif
 
     static func activityName(for ruleID: UUID) -> DeviceActivityName {
         DeviceActivityName(activityNamePrefix + ruleID.uuidString.lowercased())
@@ -107,6 +114,20 @@ enum OnlyLockShared {
     static func screenTimeInsightsDiagnosticKey(scope: String) -> String {
         screenTimeInsightsDiagnosticKeyPrefix + scope
     }
+
+#if DEBUG
+    static func debugScreenTimeInsightsOverrideKey(scope: String, rangeStart: Date, rangeEnd: Date) -> String {
+        let start = Int(rangeStart.timeIntervalSince1970)
+        let end = Int(rangeEnd.timeIntervalSince1970)
+        return "\(debugScreenTimeInsightsOverrideKeyPrefix)\(scope).\(start).\(end)"
+    }
+
+    static func debugWeeklyReportOverrideKey(weekStart: Date) -> String {
+        let normalizedStart = startOfWeekMonday(containing: weekStart)
+        let timestamp = Int(normalizedStart.timeIntervalSince1970)
+        return "onlylock.debug.weeklyReport.override.\(timestamp)"
+    }
+#endif
 
     static func ruleID(from activity: DeviceActivityName) -> UUID? {
         if let id = parseRuleID(activity.rawValue, prefix: activityNamePrefix) {

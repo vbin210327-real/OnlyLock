@@ -79,6 +79,35 @@ private enum InsightsDebugLogger {
     }
 }
 
+private enum UnknownCategoryLogger {
+    private static let timestampFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    static func log(_ rawName: String) {
+        let normalized = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return }
+        let line = "[\(timestampFormatter.string(from: Date()))] \(normalized)\n"
+        append(line: line, to: ScreenTimeInsightsShared.unknownCategoryLogFileURL())
+    }
+
+    private static func append(line: String, to fileURL: URL?) {
+        guard let fileURL, let data = line.data(using: .utf8) else { return }
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            if let handle = try? FileHandle(forWritingTo: fileURL) {
+                _ = try? handle.seekToEnd()
+                try? handle.write(contentsOf: data)
+                try? handle.close()
+            }
+            return
+        }
+
+        try? data.write(to: fileURL, options: .atomic)
+    }
+}
+
 private struct InsightsBucketConfiguration: Identifiable {
     let id: String
     let label: String
@@ -96,6 +125,23 @@ private struct InsightsTargetConfiguration: Identifiable {
     let minutes: Int
     let kind: ScreenTimeInsightsTargetKind
     let applicationToken: ApplicationToken?
+    let categoryToken: ActivityCategoryToken?
+
+    init(
+        id: String,
+        name: String,
+        minutes: Int,
+        kind: ScreenTimeInsightsTargetKind,
+        applicationToken: ApplicationToken? = nil,
+        categoryToken: ActivityCategoryToken? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.minutes = minutes
+        self.kind = kind
+        self.applicationToken = applicationToken
+        self.categoryToken = categoryToken
+    }
 }
 
 private struct InsightsReportConfiguration {
@@ -108,6 +154,7 @@ private struct InsightsReportConfiguration {
     let buckets: [InsightsBucketConfiguration]
     let previousBuckets: [InsightsBucketConfiguration]
     let topTargets: [InsightsTargetConfiguration]
+    let topCategories: [InsightsTargetConfiguration]
     let hasData: Bool
 }
 
@@ -134,8 +181,8 @@ private struct OnlyLockInsightsReport: DeviceActivityReportScene {
         let configuration = await InsightsConfigurationBuilder.build(scope: scope, data: data)
         InsightsConfigurationBuilder.persistSnapshot(configuration, for: scope)
 
-        InsightsDebugLogger.log("makeConfiguration.finish scope=\(scope.rawValue) total=\(configuration.totalMinutes) buckets=\(configuration.buckets.count) targets=\(configuration.topTargets.count)")
-        print("[OnlyLockInsights][ReportExtension] scope=\(scope.rawValue) total=\(configuration.totalMinutes) targets=\(configuration.topTargets.count)")
+        InsightsDebugLogger.log("makeConfiguration.finish scope=\(scope.rawValue) total=\(configuration.totalMinutes) buckets=\(configuration.buckets.count) targets=\(configuration.topTargets.count) categories=\(configuration.topCategories.count)")
+        print("[OnlyLockInsights][ReportExtension] scope=\(scope.rawValue) total=\(configuration.totalMinutes) targets=\(configuration.topTargets.count) categories=\(configuration.topCategories.count)")
         return configuration
     }
 }
@@ -158,12 +205,17 @@ private struct OnlyLockWeeklyDigestReport: DeviceActivityReportScene {
         InsightsDebugLogger.log("makeConfiguration.start scope=weeklyDigest")
         let configuration = await InsightsConfigurationBuilder.buildWeeklyDigest(data: data)
         InsightsConfigurationBuilder.persistSnapshot(configuration, for: .week)
-        InsightsDebugLogger.log("makeConfiguration.finish scope=weeklyDigest total=\(configuration.totalMinutes) buckets=\(configuration.buckets.count) targets=\(configuration.topTargets.count)")
+        InsightsDebugLogger.log("makeConfiguration.finish scope=weeklyDigest total=\(configuration.totalMinutes) buckets=\(configuration.buckets.count) targets=\(configuration.topTargets.count) categories=\(configuration.topCategories.count)")
         return configuration
     }
 }
 
 private enum InsightsConfigurationBuilder {
+    private struct AggregatedInsights {
+        var targets: [String: (name: String, kind: ScreenTimeInsightsTargetKind, minutes: Int, applicationToken: ApplicationToken?)]
+        var categories: [String: (name: String, minutes: Int, categoryToken: ActivityCategoryToken?)]
+    }
+
     private struct RawSegment {
         let startDate: Date
         let appMinutes: Int
@@ -184,13 +236,17 @@ private enum InsightsConfigurationBuilder {
             .reduce(into: [DeviceActivityData.ActivitySegment]()) { result, segment in
                 result.append(segment)
             }
-        var targetMinutes: [String: (name: String, kind: ScreenTimeInsightsTargetKind, minutes: Int, applicationToken: ApplicationToken?)] = [:]
+        var aggregatedInsights = AggregatedInsights(targets: [:], categories: [:])
         var rawSegments: [RawSegment] = []
 
         for segment in segments {
             let segmentTotalMinutes = minutesValue(from: segment.totalActivityDuration)
 
             for await category in segment.categories {
+                let categoryName = normalizedDisplayName(category.category.localizedDisplayName) ?? ReportLanguage.text("其他", "Other")
+                let categoryToken = category.category.token
+                let categoryKey = stableCategoryKey(token: categoryToken, fallbackName: categoryName)
+
                 for await applicationActivity in category.applications {
                     let minutes = minutesValue(from: applicationActivity.totalActivityDuration)
                     guard minutes > 0 else { continue }
@@ -202,12 +258,23 @@ private enum InsightsConfigurationBuilder {
                     ) ?? ReportLanguage.text("应用", "App")
 
                     let key = "app.\((bundleIdentifier ?? appName).lowercased())"
-                    let existing = targetMinutes[key] ?? (name: appName, kind: .app, minutes: 0, applicationToken: applicationActivity.application.token)
-                    targetMinutes[key] = (
+                    let existing = aggregatedInsights.targets[key] ?? (name: appName, kind: .app, minutes: 0, applicationToken: applicationActivity.application.token)
+                    aggregatedInsights.targets[key] = (
                         name: existing.name,
                         kind: existing.kind,
                         minutes: existing.minutes + minutes,
                         applicationToken: existing.applicationToken ?? applicationActivity.application.token
+                    )
+
+                    let existingCategory = aggregatedInsights.categories[categoryKey] ?? (
+                        name: categoryName,
+                        minutes: 0,
+                        categoryToken: categoryToken
+                    )
+                    aggregatedInsights.categories[categoryKey] = (
+                        name: existingCategory.name,
+                        minutes: existingCategory.minutes + minutes,
+                        categoryToken: existingCategory.categoryToken ?? categoryToken
                     )
                 }
 
@@ -217,12 +284,23 @@ private enum InsightsConfigurationBuilder {
 
                     let domain = normalizedDisplayName(webDomainActivity.webDomain.domain) ?? ReportLanguage.text("网站", "Website")
                     let key = "web.\(domain.lowercased())"
-                    let existing = targetMinutes[key] ?? (name: domain, kind: .website, minutes: 0, applicationToken: nil)
-                    targetMinutes[key] = (
+                    let existing = aggregatedInsights.targets[key] ?? (name: domain, kind: .website, minutes: 0, applicationToken: nil)
+                    aggregatedInsights.targets[key] = (
                         name: existing.name,
                         kind: existing.kind,
                         minutes: existing.minutes + minutes,
                         applicationToken: existing.applicationToken
+                    )
+
+                    let existingCategory = aggregatedInsights.categories[categoryKey] ?? (
+                        name: categoryName,
+                        minutes: 0,
+                        categoryToken: categoryToken
+                    )
+                    aggregatedInsights.categories[categoryKey] = (
+                        name: existingCategory.name,
+                        minutes: existingCategory.minutes + minutes,
+                        categoryToken: existingCategory.categoryToken ?? categoryToken
                     )
                 }
             }
@@ -246,7 +324,7 @@ private enum InsightsConfigurationBuilder {
         let averageDivisor = max(1, buckets.count)
 
         let averageMinutes = averageDivisor > 0 ? totalMinutes / averageDivisor : totalMinutes
-        let topTargets = targetMinutes
+        let topTargets = aggregatedInsights.targets
             .map { key, item in
                 InsightsTargetConfiguration(
                     id: key,
@@ -262,6 +340,30 @@ private enum InsightsConfigurationBuilder {
                 }
                 return lhs.minutes > rhs.minutes
             }
+        let topCategories = aggregatedInsights.categories
+            .map { key, item in
+                InsightsTargetConfiguration(
+                    id: key,
+                    name: item.name,
+                    minutes: item.minutes,
+                    kind: .category,
+                    categoryToken: item.categoryToken
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.minutes == rhs.minutes {
+                    return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+                }
+                return lhs.minutes > rhs.minutes
+            }
+        persistTopCategoriesDebug(
+            scope: scope.rawValue,
+            topCategories: topCategories
+        )
+        InsightsDebugLogger.log(
+            "topCategories scope=\(scope.rawValue) " +
+            topCategories.map { "\($0.name)|token=\($0.categoryToken != nil)|minutes=\($0.minutes)" }.joined(separator: ", ")
+        )
 
         return InsightsReportConfiguration(
             scope: scope,
@@ -280,6 +382,7 @@ private enum InsightsConfigurationBuilder {
                 )
             } ?? [],
             topTargets: Array(topTargets.prefix(12)),
+            topCategories: topCategories,
             hasData: totalMinutes > 0
         )
     }
@@ -318,7 +421,7 @@ private enum InsightsConfigurationBuilder {
             segment.dateInterval.start >= previousWeekStart && segment.dateInterval.start < selectedWeekStart
         }
 
-        let targetMinutes = await aggregateTargetMinutes(from: currentWeekSegments)
+        let aggregatedInsights = await aggregateInsights(from: currentWeekSegments)
         var currentRawSegments: [RawSegment] = []
         currentRawSegments.reserveCapacity(currentWeekSegments.count)
         for segment in currentWeekSegments {
@@ -353,7 +456,7 @@ private enum InsightsConfigurationBuilder {
         let previousTotalMinutes = previousBuckets.reduce(0) { $0 + $1.totalMinutes }
         let averageMinutes = totalMinutes / max(1, currentBuckets.count)
 
-        let topTargets = targetMinutes
+        let topTargets = aggregatedInsights.targets
             .map { key, item in
                 InsightsTargetConfiguration(
                     id: key,
@@ -369,6 +472,30 @@ private enum InsightsConfigurationBuilder {
                 }
                 return lhs.minutes > rhs.minutes
             }
+        let topCategories = aggregatedInsights.categories
+            .map { key, item in
+                InsightsTargetConfiguration(
+                    id: key,
+                    name: item.name,
+                    minutes: item.minutes,
+                    kind: .category,
+                    categoryToken: item.categoryToken
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.minutes == rhs.minutes {
+                    return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+                }
+                return lhs.minutes > rhs.minutes
+            }
+        persistTopCategoriesDebug(
+            scope: "weeklyDigest",
+            topCategories: topCategories
+        )
+        InsightsDebugLogger.log(
+            "topCategories scope=weeklyDigest " +
+            topCategories.map { "\($0.name)|token=\($0.categoryToken != nil)|minutes=\($0.minutes)" }.joined(separator: ", ")
+        )
 
         return InsightsReportConfiguration(
             scope: .week,
@@ -380,17 +507,23 @@ private enum InsightsConfigurationBuilder {
             buckets: currentBuckets,
             previousBuckets: previousBuckets,
             topTargets: Array(topTargets.prefix(12)),
+            topCategories: topCategories,
             hasData: totalMinutes > 0 || previousTotalMinutes > 0
         )
     }
 
-    private static func aggregateTargetMinutes(
+    private static func aggregateInsights(
         from segments: [DeviceActivityData.ActivitySegment]
-    ) async -> [String: (name: String, kind: ScreenTimeInsightsTargetKind, minutes: Int, applicationToken: ApplicationToken?)] {
+    ) async -> AggregatedInsights {
         var targetMinutes: [String: (name: String, kind: ScreenTimeInsightsTargetKind, minutes: Int, applicationToken: ApplicationToken?)] = [:]
+        var categoryMinutes: [String: (name: String, minutes: Int, categoryToken: ActivityCategoryToken?)] = [:]
 
         for segment in segments {
             for await category in segment.categories {
+                let categoryName = normalizedDisplayName(category.category.localizedDisplayName) ?? ReportLanguage.text("其他", "Other")
+                let categoryToken = category.category.token
+                let categoryKey = stableCategoryKey(token: categoryToken, fallbackName: categoryName)
+
                 for await applicationActivity in category.applications {
                     let minutes = minutesValue(from: applicationActivity.totalActivityDuration)
                     guard minutes > 0 else { continue }
@@ -408,6 +541,17 @@ private enum InsightsConfigurationBuilder {
                         minutes: existing.minutes + minutes,
                         applicationToken: existing.applicationToken ?? applicationActivity.application.token
                     )
+
+                    let existingCategory = categoryMinutes[categoryKey] ?? (
+                        name: categoryName,
+                        minutes: 0,
+                        categoryToken: categoryToken
+                    )
+                    categoryMinutes[categoryKey] = (
+                        name: existingCategory.name,
+                        minutes: existingCategory.minutes + minutes,
+                        categoryToken: existingCategory.categoryToken ?? categoryToken
+                    )
                 }
 
                 for await webDomainActivity in category.webDomains {
@@ -423,11 +567,22 @@ private enum InsightsConfigurationBuilder {
                         minutes: existing.minutes + minutes,
                         applicationToken: existing.applicationToken
                     )
+
+                    let existingCategory = categoryMinutes[categoryKey] ?? (
+                        name: categoryName,
+                        minutes: 0,
+                        categoryToken: categoryToken
+                    )
+                    categoryMinutes[categoryKey] = (
+                        name: existingCategory.name,
+                        minutes: existingCategory.minutes + minutes,
+                        categoryToken: existingCategory.categoryToken ?? categoryToken
+                    )
                 }
             }
         }
 
-        return targetMinutes
+        return AggregatedInsights(targets: targetMinutes, categories: categoryMinutes)
     }
 
     private static func makeBuckets(
@@ -542,6 +697,227 @@ private enum InsightsConfigurationBuilder {
         guard let value else { return nil }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func stableCategoryKey(
+        token: ActivityCategoryToken?,
+        fallbackName: String
+    ) -> String {
+        if let canonical = canonicalCategoryKey(for: fallbackName) {
+            return "category.canonical.\(canonical)"
+        }
+        if let token,
+           let data = try? JSONEncoder().encode(token) {
+            return "category.token.\(data.base64EncodedString())"
+        }
+        return "category.name.\(fallbackName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
+    }
+
+    private static func canonicalCategoryKey(for rawName: String) -> String? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if name.contains("社交") ||
+            name.contains("social") ||
+            name.contains("network") ||
+            name.contains("chat") ||
+            name.contains("message") ||
+            name.contains("messages") ||
+            name.contains("sticker") ||
+            name.contains("通讯") {
+            return "social"
+        }
+        if name.contains("游戏") ||
+            name.contains("game") ||
+            name.contains("gaming") ||
+            name.contains("arcade") ||
+            name.contains("action") ||
+            name.contains("adventure") ||
+            name.contains("board") ||
+            name.contains("casino") ||
+            name.contains("casual") ||
+            name.contains("family game") ||
+            name.contains("music game") ||
+            name.contains("puzzle") ||
+            name.contains("racing") ||
+            name.contains("role playing") ||
+            name.contains("simulation") ||
+            name.contains("strategy") ||
+            name.contains("trivia") ||
+            name.contains("word game") ||
+            name.contains("益智") ||
+            name.contains("动作") ||
+            name.contains("冒险") ||
+            name.contains("桌游") ||
+            name.contains("棋牌") ||
+            name.contains("卡牌") ||
+            name.contains("休闲") ||
+            name.contains("竞速") ||
+            name.contains("角色扮演") ||
+            name.contains("模拟") ||
+            name.contains("策略") ||
+            name.contains("问答") ||
+            name.contains("文字游戏") {
+            return "games"
+        }
+        if name.contains("娱乐") ||
+            name.contains("entertainment") ||
+            name.contains("video") ||
+            name.contains("stream") ||
+            name.contains("music") ||
+            name.contains("tv") ||
+            name.contains("movie") ||
+            name.contains("音频") ||
+            name.contains("影视") ||
+            name.contains("音乐") {
+            return "entertainment"
+        }
+        if name.contains("信息") ||
+            name.contains("阅读") ||
+            name.contains("read") ||
+            name.contains("news") ||
+            name.contains("book") ||
+            name.contains("reference") ||
+            name.contains("magazine") ||
+            name.contains("newspaper") ||
+            name.contains("books") ||
+            name.contains("图书") ||
+            name.contains("新闻") ||
+            name.contains("报纸") ||
+            name.contains("杂志") ||
+            name.contains("参考") {
+            return "information"
+        }
+        if name.contains("健康") ||
+            name.contains("健身") ||
+            name.contains("health") ||
+            name.contains("fitness") ||
+            name.contains("medical") ||
+            name.contains("sports") ||
+            name.contains("sport") ||
+            name.contains("医疗") ||
+            name.contains("体育") ||
+            name.contains("运动") {
+            return "health"
+        }
+        if name.contains("创意") ||
+            name.contains("creative") ||
+            name.contains("art") ||
+            name.contains("drawing") ||
+            name.contains("illustration") ||
+            name.contains("animation") ||
+            name.contains("camera") ||
+            name.contains("editor") ||
+            name.contains("graphics") ||
+            name.contains("photo") ||
+            name.contains("design") ||
+            name.contains("video photo") ||
+            name.contains("graphics & design") ||
+            name.contains("photo & video") ||
+            name.contains("摄影") ||
+            name.contains("照片") ||
+            name.contains("录像") ||
+            name.contains("图形") ||
+            name.contains("设计") ||
+            name.contains("艺术") ||
+            name.contains("绘画") ||
+            name.contains("插画") ||
+            name.contains("动画") ||
+            name.contains("相机") ||
+            name.contains("编辑") {
+            return "creativity"
+        }
+        if name.contains("工具") ||
+            name.contains("utility") ||
+            name.contains("utilities") ||
+            name.contains("developer") ||
+            name.contains("productivity tools") ||
+            name.contains("developer tools") ||
+            name.contains("reference tools") ||
+            name.contains("weather") ||
+            name.contains("天气") ||
+            name.contains("开发工具") {
+            return "utilities"
+        }
+        if name.contains("效率") ||
+            name.contains("财务") ||
+            name.contains("productivity") ||
+            name.contains("finance") ||
+            name.contains("business") ||
+            name.contains("商务") {
+            return "productivity"
+        }
+        if name.contains("教育") ||
+            name.contains("education") ||
+            name.contains("learning") ||
+            name.contains("study") ||
+            name.contains("course") ||
+            name.contains("classroom") ||
+            name.contains("student") ||
+            name.contains("kids") ||
+            name.contains("学习") ||
+            name.contains("课程") ||
+            name.contains("课堂") ||
+            name.contains("学生") ||
+            name.contains("儿童") {
+            return "education"
+        }
+        if name.contains("旅行") ||
+            name.contains("travel") ||
+            name.contains("local") ||
+            name.contains("trip") ||
+            name.contains("tour") ||
+            name.contains("tourism") ||
+            name.contains("hotel") ||
+            name.contains("flight") ||
+            name.contains("airline") ||
+            name.contains("transport") ||
+            name.contains("transit") ||
+            name.contains("navigation") ||
+            name.contains("地图") ||
+            name.contains("nav") ||
+            name.contains("出行") ||
+            name.contains("旅游") ||
+            name.contains("酒店") ||
+            name.contains("航班") ||
+            name.contains("航空") ||
+            name.contains("交通") ||
+            name.contains("本地") {
+            return "travel"
+        }
+        if name.contains("购物") ||
+            name.contains("美食") ||
+            name.contains("shopping") ||
+            name.contains("food") ||
+            name.contains("drink") ||
+            name.contains("餐") ||
+            name.contains("catalog") ||
+            name.contains("food & drink") ||
+            name.contains("美食佳饮") ||
+            name.contains("餐饮") ||
+            name.contains("目录") {
+            return "shoppingFood"
+        }
+        if name.contains("其他") || name == "other" || name.contains("misc") || name.contains("miscellaneous") {
+            return "other"
+        }
+        if name.contains("生活") || name.contains("lifestyle") || name.contains("生活方式") {
+            return "other"
+        }
+        return nil
+    }
+
+    private static func persistTopCategoriesDebug(
+        scope: String,
+        topCategories: [InsightsTargetConfiguration]
+    ) {
+        guard let defaults = UserDefaults(suiteName: ScreenTimeInsightsShared.appGroupIdentifier) else {
+            return
+        }
+        let value = topCategories.map { target in
+            "\(target.name)|token=\(target.categoryToken != nil)|id=\(target.id)|minutes=\(target.minutes)"
+        }.joined(separator: "\n")
+        defaults.set(value, forKey: "onlylock.screentime.categorydebug.\(scope)")
+        defaults.synchronize()
     }
 
     private static func resolvedRange(for scope: InsightsScope, from segments: [RawSegment]) -> DateInterval? {
@@ -681,7 +1057,19 @@ private enum InsightsConfigurationBuilder {
                     id: $0.id,
                     name: $0.name,
                     minutes: $0.minutes,
-                    kind: $0.kind
+                    kind: $0.kind,
+                    applicationToken: $0.applicationToken,
+                    categoryToken: $0.categoryToken
+                )
+            },
+            topCategories: configuration.topCategories.map {
+                ScreenTimeInsightsTarget(
+                    id: $0.id,
+                    name: $0.name,
+                    minutes: $0.minutes,
+                    kind: $0.kind,
+                    applicationToken: $0.applicationToken,
+                    categoryToken: $0.categoryToken
                 )
             },
             generatedAt: Date()
@@ -821,8 +1209,10 @@ private struct OnlyLockInsightsReportView: View {
                 headlineBlock
                 chartCard
 
+                if !configuration.topCategories.isEmpty {
+                    compactTopCategoriesStrip
+                }
                 if !configuration.topTargets.isEmpty {
-                    compactTopTargetsStrip
                     targetsList
                 }
             }
@@ -835,7 +1225,7 @@ private struct OnlyLockInsightsReportView: View {
 
     private var headlineBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(durationText(configuration.totalMinutes))
+            Text(durationText(headlineMinutes))
                 .font(.system(size: 34, weight: .heavy))
                 .foregroundStyle(primaryText)
                 .monospacedDigit()
@@ -857,6 +1247,15 @@ private struct OnlyLockInsightsReportView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(secondaryText)
             }
+        }
+    }
+
+    private var headlineMinutes: Int {
+        switch configuration.scope {
+        case .day:
+            return configuration.totalMinutes
+        case .week, .trend:
+            return configuration.averageMinutes
         }
     }
 
@@ -920,18 +1319,17 @@ private struct OnlyLockInsightsReportView: View {
         }
     }
 
-    private var compactTopTargetsStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+    private var compactTopCategoriesStrip: some View {
+        let displayedCategories = Array(configuration.topCategories.prefix(4))
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(configuration.topTargets.prefix(4)) { target in
+                ForEach(displayedCategories) { target in
                     HStack(spacing: 6) {
                         targetLeadingIcon(for: target, compact: true)
-
-                        Text(target.name)
+                        Text(shortDuration(target.minutes))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(primaryText)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
+                            .monospacedDigit()
                     }
                     .padding(.leading, 8)
                     .padding(.trailing, 10)
@@ -943,7 +1341,20 @@ private struct OnlyLockInsightsReportView: View {
                     )
                 }
             }
+            .padding(.trailing, 18)
         }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.84),
+                    .init(color: .black.opacity(0.78), location: 0.91),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
     }
 
     private var chart: some View {
@@ -1043,13 +1454,161 @@ private struct OnlyLockInsightsReportView: View {
                 .labelStyle(.iconOnly)
                 .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+        } else if target.kind == .category {
+            categoryIcon(for: target.name, compact: compact)
         } else {
-            Image(systemName: "globe")
+            Image(systemName: target.kind == .website ? "globe" : "square.grid.2x2")
                 .font(.system(size: compact ? 14 : 16, weight: .semibold))
                 .foregroundStyle(primaryText)
                 .frame(width: side, height: side)
                 .background(iconBackground, in: RoundedRectangle(cornerRadius: corner, style: .continuous))
         }
+    }
+
+    @ViewBuilder
+    private func categoryIcon(for name: String, compact: Bool) -> some View {
+        let side: CGFloat = compact ? 24 : 28
+        let symbol = categoryEmoji(for: name)
+
+        Text(symbol)
+            .font(.system(size: compact ? 17 : 20))
+            .frame(width: side, height: side)
+    }
+
+    private func categoryEmoji(for rawName: String) -> String {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if name.contains("社交") ||
+            name.contains("social") ||
+            name.contains("network") ||
+            name.contains("chat") ||
+            name.contains("message") ||
+            name.contains("messages") ||
+            name.contains("sticker") ||
+            name.contains("通讯") {
+            return "💬"
+        }
+        if name.contains("游戏") ||
+            name.contains("game") ||
+            name.contains("gaming") ||
+            name.contains("arcade") ||
+            name.contains("益智") ||
+            name.contains("桌游") ||
+            name.contains("棋牌") ||
+            name.contains("卡牌") {
+            return "🚀"
+        }
+        if name.contains("娱乐") ||
+            name.contains("entertainment") ||
+            name.contains("video") ||
+            name.contains("stream") ||
+            name.contains("music") ||
+            name.contains("tv") ||
+            name.contains("movie") ||
+            name.contains("音频") ||
+            name.contains("影视") ||
+            name.contains("音乐") {
+            return "🍿"
+        }
+        if name.contains("信息") ||
+            name.contains("阅读") ||
+            name.contains("read") ||
+            name.contains("news") ||
+            name.contains("book") ||
+            name.contains("reference") ||
+            name.contains("magazine") ||
+            name.contains("newspaper") ||
+            name.contains("books") ||
+            name.contains("图书") ||
+            name.contains("新闻") ||
+            name.contains("报纸") ||
+            name.contains("杂志") ||
+            name.contains("参考") {
+            return "📖"
+        }
+        if name.contains("健康") ||
+            name.contains("健身") ||
+            name.contains("health") ||
+            name.contains("fitness") ||
+            name.contains("medical") ||
+            name.contains("sports") ||
+            name.contains("sport") ||
+            name.contains("医疗") ||
+            name.contains("体育") ||
+            name.contains("运动") {
+            return "🚴"
+        }
+        if name.contains("创意") ||
+            name.contains("creative") ||
+            name.contains("graphics") ||
+            name.contains("photo") ||
+            name.contains("design") ||
+            name.contains("video photo") ||
+            name.contains("graphics & design") ||
+            name.contains("photo & video") ||
+            name.contains("摄影") ||
+            name.contains("照片") ||
+            name.contains("录像") ||
+            name.contains("图形") ||
+            name.contains("设计") {
+            return "🎨"
+        }
+        if name.contains("工具") ||
+            name.contains("utility") ||
+            name.contains("utilities") ||
+            name.contains("developer") ||
+            name.contains("productivity tools") ||
+            name.contains("developer tools") ||
+            name.contains("reference tools") ||
+            name.contains("weather") ||
+            name.contains("天气") ||
+            name.contains("开发工具") {
+            return "🧮"
+        }
+        if name.contains("效率") ||
+            name.contains("财务") ||
+            name.contains("productivity") ||
+            name.contains("finance") ||
+            name.contains("business") ||
+            name.contains("商务") {
+            return "📊"
+        }
+        if name.contains("教育") || name.contains("education") || name.contains("learning") || name.contains("学习") {
+            return "🌍"
+        }
+        if name.contains("旅行") ||
+            name.contains("travel") ||
+            name.contains("navigation") ||
+            name.contains("地图") ||
+            name.contains("nav") ||
+            name.contains("出行") {
+            return "🧳"
+        }
+        if name.contains("购物") ||
+            name.contains("美食") ||
+            name.contains("shopping") ||
+            name.contains("food") ||
+            name.contains("drink") ||
+            name.contains("餐") ||
+            name.contains("catalog") ||
+            name.contains("food & drink") ||
+            name.contains("美食佳饮") ||
+            name.contains("餐饮") ||
+            name.contains("目录") {
+            return "🛍️"
+        }
+        if name.contains("其他") ||
+            name == "other" ||
+            name.contains("misc") ||
+            name.contains("miscellaneous") ||
+            name.contains("生活") ||
+            name.contains("lifestyle") ||
+            name.contains("生活方式") {
+            return "🧩"
+        }
+        InsightsDebugLogger.log("categoryEmoji.fallback name=\(rawName)")
+        UnknownCategoryLogger.log(rawName)
+        return "🧩"
     }
 
     private var subtitleText: String {
@@ -1348,6 +1907,10 @@ private struct OnlyLockWeeklyDigestReportView: View {
                 .labelStyle(.iconOnly)
                 .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+        } else if target.kind == .category, let token = target.categoryToken {
+            Label(token)
+                .labelStyle(.iconOnly)
+                .frame(width: side, height: side)
         } else {
             Image(systemName: "globe")
                 .font(.system(size: compact ? 14 : 16, weight: .semibold))

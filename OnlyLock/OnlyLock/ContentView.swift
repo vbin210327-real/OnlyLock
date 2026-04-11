@@ -42,6 +42,7 @@ private func onlyLockWeekdayLabel(_ weekday: Int) -> String {
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var languageStore: AppLanguageStore
 
     @StateObject private var authorizationService = AuthorizationService()
     @StateObject private var viewModel = LockRuleViewModel()
@@ -122,6 +123,9 @@ struct ContentView: View {
     @State private var debugStreakMedalPreviewBestStreak = 0
     @State private var debugMembershipTierOverride: SettingsStore.MembershipTier = .none
     @State private var isDebugMembershipExpiredOverride = false
+    @State private var isDebugInsightsDemoEnabled = false
+    @State private var isDebugWeeklyReportDemoEnabled = false
+    @State private var debugWeeklyReportWeekStart = OnlyLockShared.startOfWeekMonday(containing: Date())
 #endif
 
     private var repeatWeekdayLabels: [(weekday: Int, label: String)] {
@@ -585,6 +589,14 @@ struct ContentView: View {
                 await weeklyInsightsNotificationScheduler.syncWeeklyReportNotification()
             }
         }
+        .onChangeCompat(of: settingsStore.appearancePreference) { _ in
+            syncSharedAppearanceStyleForExtensions()
+        }
+        .onChangeCompat(of: colorScheme) { _ in
+            if settingsStore.appearancePreference == .system {
+                syncSharedAppearanceStyleForExtensions()
+            }
+        }
         .onChangeCompat(of: settingsStore.membershipTier) { _ in
             syncRuntimeShieldForAuthorizationState(now: Date())
             if settingsStore.membershipTier == .none {
@@ -652,6 +664,12 @@ struct ContentView: View {
                 syncDebugStreakOverrideToWidget()
             }
         }
+        .onChangeCompat(of: isDebugInsightsDemoEnabled) { isEnabled in
+            persistDebugInsightsDemoEnabled(isEnabled)
+        }
+        .onChangeCompat(of: isDebugWeeklyReportDemoEnabled) { isEnabled in
+            persistDebugWeeklyReportDemoEnabled(isEnabled)
+        }
 #endif
     }
 
@@ -661,6 +679,7 @@ struct ContentView: View {
             authorizationService.refreshStatus()
             applyPendingInitialTabIfNeeded()
             syncRuntimeShieldForAuthorizationState(now: Date())
+            syncSharedAppearanceStyleForExtensions()
             consumePendingQuickActionIfNeeded()
             consumePendingWeeklyInsightsRouteIfNeeded()
             settingsProfileNameDraft = settingsStore.profileName
@@ -679,6 +698,9 @@ struct ContentView: View {
 #if DEBUG
             refreshDebugTimeSimulation()
             syncDebugStreakOverrideToWidget()
+            isDebugInsightsDemoEnabled = debugSharedDefaults.bool(forKey: OnlyLockShared.debugScreenTimeInsightsOverrideEnabledKey)
+            isDebugWeeklyReportDemoEnabled = debugSharedDefaults.bool(forKey: OnlyLockShared.debugWeeklyReportOverrideEnabledKey)
+            debugWeeklyReportWeekStart = latestPublishedWeeklyReportStartForDebugSimulation(from: resolvedDisplayNow)
 #endif
         }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { now in
@@ -815,12 +837,6 @@ struct ContentView: View {
                             subtitle: "续费后继续查看任务进度与锁定状态。"
                         )
                     }
-
-#if DEBUG
-                    if !viewModel.rules.isEmpty {
-                        flipPreviewDebugOverlay
-                    }
-#endif
                 }
             }
             .background(pageBackground.ignoresSafeArea())
@@ -829,30 +845,36 @@ struct ContentView: View {
 
     private var settingsTab: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                settingsTopBar
+            ZStack {
+                VStack(spacing: 0) {
+                    settingsTopBar
 
-                ScrollView {
-                    ScrollViewOffsetObserver { offsetY in
-                        guard isTopBarStateUpdatesEnabled else { return }
-                        let shouldCollapse = offsetY > 2
-                        if shouldCollapse != isSettingsTopBarCollapsed {
-                            withAnimation(.easeInOut(duration: 0.22)) {
-                                isSettingsTopBarCollapsed = shouldCollapse
+                    ScrollView {
+                        ScrollViewOffsetObserver { offsetY in
+                            guard isTopBarStateUpdatesEnabled else { return }
+                            let shouldCollapse = offsetY > 2
+                            if shouldCollapse != isSettingsTopBarCollapsed {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    isSettingsTopBarCollapsed = shouldCollapse
+                                }
                             }
                         }
-                    }
-                    .frame(height: 0)
+                        .frame(height: 0)
 
-                    VStack(alignment: .leading, spacing: 24) {
-                        settingsProfileCard
-                        settingsScreenTimePermissionCard
-                        settingsSupportCard
+                        VStack(alignment: .leading, spacing: 24) {
+                            AnyView(settingsProfileCard)
+                            AnyView(settingsScreenTimePermissionCard)
+                            AnyView(settingsSupportCard)
+                        }
+                        .padding(.horizontal, 32)
+                        .padding(.top, 12)
+                        .padding(.bottom, customTabBarReservedHeight + 24)
                     }
-                    .padding(.horizontal, 32)
-                    .padding(.top, 12)
-                    .padding(.bottom, customTabBarReservedHeight + 24)
                 }
+
+#if DEBUG
+                flipPreviewDebugOverlay
+#endif
             }
             .background(pageBackground.ignoresSafeArea())
             .task {
@@ -874,7 +896,8 @@ struct ContentView: View {
         let hasUnlockedStreakMedal = RewardEngine.highestUnlockedStreakTier(bestStreak: bestStreak) != nil
         let visualLevel = RewardEngine.streakMedalVisualLevel(bestStreak: bestStreak)
         let displayedMedalNumber = RewardEngine.displayedStreakNumber(bestStreak: bestStreak)
-        return VStack(spacing: 10) {
+        return AnyView(
+            VStack(spacing: 10) {
             ZStack(alignment: .bottomTrailing) {
                 PhotosPicker(
                     selection: settingsAvatarPickerBinding,
@@ -951,6 +974,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 4)
+        )
     }
 
     private var membershipTierSettingsColor: Color {
@@ -980,7 +1004,7 @@ struct ContentView: View {
             ) {
                 presentMembershipRenewal()
             } footer: {
-                Text(subtitle)
+                Text(onlyLockL(subtitle))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(secondaryText)
                     .multilineTextAlignment(.center)
@@ -1189,7 +1213,7 @@ struct ContentView: View {
 
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
-                    Image(systemName: "timer")
+                    Image(systemName: "checkmark.shield.fill")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(secondaryText)
                         .frame(width: 24)
@@ -1265,7 +1289,7 @@ struct ContentView: View {
                             onlyLockL("切换外观"),
                             selection: Binding(
                                 get: { settingsStore.appearancePreference },
-                                set: { settingsStore.updateAppearancePreference($0) }
+                                set: { applyAppearancePreferenceFromSettings($0) }
                             )
                         ) {
                             ForEach(SettingsStore.AppearancePreference.allCases) { preference in
@@ -1275,10 +1299,57 @@ struct ContentView: View {
                         .labelsHidden()
                         .pickerStyle(.menu)
                         .tint(primaryText)
+                        .id("appearance-picker-\(languageStore.currentLanguage.rawValue)")
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 14)
                 }
+
+                Rectangle()
+                    .fill(dividerColor)
+                    .frame(height: 1)
+
+                HStack(spacing: 12) {
+                    Image(systemName: "globe.europe.africa.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(secondaryText)
+                        .frame(width: 24)
+
+                    Text(onlyLockL("应用语言"))
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(primaryText)
+
+                    Spacer()
+
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            languageStore.toggleLanguage()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(languageStore.switchFlag)
+                                .font(.system(size: 15))
+
+                            Text(languageStore.currentLanguage == .zhHans ? onlyLockL("中文") : onlyLockL("英文"))
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(primaryText)
+                        }
+                        .padding(.horizontal, 12)
+                        .frame(height: 34)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.04))
+                        )
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(dividerColor, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .frame(height: 56)
+                .padding(.horizontal, 14)
             }
         }
     }
@@ -1287,48 +1358,128 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             settingsSectionLabel(onlyLockL("支持"))
 
-            Button {
-                Task {
-                    await openAppStoreReviewPage()
+            VStack(spacing: 0) {
+                Button {
+                    Task {
+                        await openAppStoreReviewPage()
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(secondaryText)
+                            .frame(width: 24)
+
+                        Text(onlyLockL("去评分"))
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(primaryText)
+
+                        Spacer(minLength: 0)
+
+                        if isOpeningAppStoreReview {
+                            ProgressView()
+                                .scaleEffect(0.86)
+                                .tint(primaryText)
+                        } else {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(secondaryText)
+                        }
+                    }
+                    .contentShape(Rectangle())
                 }
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(primaryText)
-                        .frame(width: 26, height: 26)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(primaryText.opacity(colorScheme == .dark ? 0.14 : 0.06))
-                        )
+                .buttonStyle(.plain)
+                .disabled(isOpeningAppStoreReview)
+                .padding(.horizontal, 14)
+                .frame(height: 56)
 
-                    Text(onlyLockL("去评分"))
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(primaryText)
+                Rectangle()
+                    .fill(dividerColor)
+                    .frame(height: 1)
 
-                    Spacer(minLength: 0)
+                Button {
+                    openContactUsPage()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "envelope.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(secondaryText)
+                            .frame(width: 24)
 
-                    if isOpeningAppStoreReview {
-                        ProgressView()
-                            .scaleEffect(0.86)
-                            .tint(primaryText)
-                    } else {
+                        Text(onlyLockL("联系我们"))
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(primaryText)
+
+                        Spacer(minLength: 0)
+
                         Image(systemName: "chevron.right")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(secondaryText)
                     }
+                    .contentShape(Rectangle())
                 }
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .padding(.horizontal, 14)
+                .frame(height: 56)
+
+                Rectangle()
+                    .fill(dividerColor)
+                    .frame(height: 1)
+
+                Button {
+                    openPrivacyPolicyPage()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "lock.doc.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(secondaryText)
+                            .frame(width: 24)
+
+                        Text(onlyLockL("隐私政策"))
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(primaryText)
+
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(secondaryText)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 14)
+                .frame(height: 56)
+
+                Rectangle()
+                    .fill(dividerColor)
+                    .frame(height: 1)
+
+                Button {
+                    openTermsOfUsePage()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "doc.text.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(secondaryText)
+                            .frame(width: 24)
+
+                        Text(onlyLockL("使用条款"))
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(primaryText)
+
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(secondaryText)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 14)
+                .frame(height: 56)
             }
-            .buttonStyle(.plain)
-            .disabled(isOpeningAppStoreReview)
-            .padding(.horizontal, 14)
-            .frame(height: 56)
-            .background(cardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(dividerColor, lineWidth: 1)
-            )
         }
     }
 
@@ -1435,6 +1586,60 @@ struct ContentView: View {
         case .dark:
             return .dark
         }
+    }
+
+    private func syncSharedAppearanceStyleForExtensions() {
+        sharedDefaults.set(
+            settingsStore.appearancePreference.rawValue,
+            forKey: OnlyLockShared.settingsAppearancePreferenceKey
+        )
+
+        // Respect user appearance preference first; only follow system when set to `.system`.
+        let resolvedStyle: String
+        switch settingsStore.appearancePreference {
+        case .dark:
+            resolvedStyle = "dark"
+        case .light:
+            resolvedStyle = "light"
+        case .system:
+            resolvedStyle = colorScheme == .dark ? "dark" : "light"
+        }
+
+        sharedDefaults.set(resolvedStyle, forKey: OnlyLockShared.settingsResolvedAppearanceStyleKey)
+        sharedDefaults.set(resolvedStyle == "dark", forKey: OnlyLockShared.settingsShieldUseDarkAppearanceKey)
+        sharedDefaults.synchronize()
+        writeShieldAppearanceSnapshot(
+            preference: settingsStore.appearancePreference.rawValue,
+            resolvedStyle: resolvedStyle,
+            useDarkAppearance: resolvedStyle == "dark"
+        )
+    }
+
+    private func writeShieldAppearanceSnapshot(preference: String, resolvedStyle: String, useDarkAppearance: Bool) {
+        guard let groupURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: OnlyLockShared.appGroupIdentifier
+        ) else {
+            return
+        }
+
+        let payload: [String: Any] = [
+            "preference": preference,
+            "resolvedStyle": resolvedStyle,
+            "useDarkAppearance": useDarkAppearance,
+            "updatedAt": Date().timeIntervalSince1970
+        ]
+
+        guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
+            return
+        }
+
+        let fileURL = groupURL.appendingPathComponent("shield_appearance.json")
+        try? data.write(to: fileURL, options: [.atomic])
+    }
+
+    private func applyAppearancePreferenceFromSettings(_ preference: SettingsStore.AppearancePreference) {
+        settingsStore.updateAppearancePreference(preference)
+        syncSharedAppearanceStyleForExtensions()
     }
 
     private func applySettingsAvatarSelection(_ item: PhotosPickerItem) async {
@@ -1566,6 +1771,37 @@ struct ContentView: View {
         }
 
         return false
+    }
+
+    private func openPrivacyPolicyPage() {
+        openSupportURL(
+            "https://vbin210327-real.github.io/OnlyLock/privacy/",
+            failureMessage: "暂时无法打开隐私政策，请稍后重试。"
+        )
+    }
+
+    private func openContactUsPage() {
+        openSupportURL(
+            "https://pickle-cloth-1d6.notion.site/OnlyLock-Technical-Support-33c18e2eff0f8001a44ccc5202d77f93?source=copy_link",
+            failureMessage: "暂时无法打开联系我们页面，请稍后重试。"
+        )
+    }
+
+    private func openTermsOfUsePage() {
+        openSupportURL(
+            "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+            failureMessage: "暂时无法打开使用条款，请稍后重试。"
+        )
+    }
+
+    private func openSupportURL(_ urlString: String, failureMessage: String) {
+        guard let url = URL(string: urlString),
+              UIApplication.shared.canOpenURL(url) else {
+            presentSettingsError(failureMessage)
+            return
+        }
+
+        UIApplication.shared.open(url)
     }
 
     private func openAppStoreSearchPage() -> Bool {
@@ -2808,6 +3044,7 @@ struct ContentView: View {
                 previousTotalMinutes: previous?.totalMinutes ?? current.previousTotalMinutes,
                 buckets: current.buckets,
                 topTargets: current.topTargets,
+                topCategories: current.topCategories,
                 generatedAt: current.generatedAt
             )
             guard hasWeeklyReportData(enriched) else { return nil }
@@ -2878,6 +3115,7 @@ struct ContentView: View {
                 previousTotalMinutes: previousTotal,
                 buckets: [],
                 topTargets: [],
+                topCategories: [],
                 generatedAt: trendSnapshot.generatedAt
             )
         }
@@ -2974,6 +3212,7 @@ struct ContentView: View {
             previousTotalMinutes: previous?.totalMinutes ?? current.previousTotalMinutes,
             buckets: current.buckets,
             topTargets: current.topTargets,
+            topCategories: current.topCategories,
             generatedAt: current.generatedAt
         )
 
@@ -3069,6 +3308,7 @@ struct ContentView: View {
         }
 
         var targetMinutes: [String: ScreenTimeInsightsTarget] = [:]
+        var categoryMinutes: [String: ScreenTimeInsightsTarget] = [:]
         for snapshot in latestByDay.values {
             for target in snapshot.topTargets {
                 let key = "\(target.kind.rawValue).\(target.name.lowercased())"
@@ -3077,12 +3317,34 @@ struct ContentView: View {
                     id: existing?.id ?? target.id,
                     name: target.name,
                     minutes: (existing?.minutes ?? 0) + target.minutes,
-                    kind: target.kind
+                    kind: target.kind,
+                    applicationToken: existing?.applicationToken ?? target.applicationToken,
+                    categoryToken: existing?.categoryToken ?? target.categoryToken
+                )
+            }
+
+            for category in snapshot.topCategories {
+                let key = stableInsightsCategoryKey(token: category.categoryToken, fallbackName: category.name)
+                let existing = categoryMinutes[key]
+                categoryMinutes[key] = ScreenTimeInsightsTarget(
+                    id: existing?.id ?? category.id,
+                    name: category.name,
+                    minutes: (existing?.minutes ?? 0) + category.minutes,
+                    kind: .category,
+                    applicationToken: existing?.applicationToken ?? category.applicationToken,
+                    categoryToken: existing?.categoryToken ?? category.categoryToken
                 )
             }
         }
 
         let topTargets = targetMinutes.values
+            .sorted { lhs, rhs in
+                if lhs.minutes == rhs.minutes {
+                    return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+                }
+                return lhs.minutes > rhs.minutes
+            }
+        let topCategories = categoryMinutes.values
             .sorted { lhs, rhs in
                 if lhs.minutes == rhs.minutes {
                     return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
@@ -3102,12 +3364,226 @@ struct ContentView: View {
             previousTotalMinutes: 0,
             buckets: buckets,
             topTargets: Array(topTargets.prefix(12)),
+            topCategories: Array(topCategories),
             generatedAt: generatedAt
         )
     }
 
+    private func stableInsightsCategoryKey(
+        token: ActivityCategoryToken?,
+        fallbackName: String
+    ) -> String {
+        if let canonical = canonicalInsightsCategoryKey(for: fallbackName) {
+            return "category.canonical.\(canonical)"
+        }
+        if let token,
+           let data = try? JSONEncoder().encode(token) {
+            return "category.token.\(data.base64EncodedString())"
+        }
+        return "category.name.\(fallbackName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
+    }
+
+    private func canonicalInsightsCategoryKey(for rawName: String) -> String? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if name.contains("社交") ||
+            name.contains("social") ||
+            name.contains("network") ||
+            name.contains("chat") ||
+            name.contains("message") ||
+            name.contains("messages") ||
+            name.contains("sticker") ||
+            name.contains("通讯") {
+            return "social"
+        }
+        if name.contains("游戏") ||
+            name.contains("game") ||
+            name.contains("gaming") ||
+            name.contains("arcade") ||
+            name.contains("action") ||
+            name.contains("adventure") ||
+            name.contains("board") ||
+            name.contains("casino") ||
+            name.contains("casual") ||
+            name.contains("family game") ||
+            name.contains("music game") ||
+            name.contains("puzzle") ||
+            name.contains("racing") ||
+            name.contains("role playing") ||
+            name.contains("simulation") ||
+            name.contains("strategy") ||
+            name.contains("trivia") ||
+            name.contains("word game") ||
+            name.contains("益智") ||
+            name.contains("动作") ||
+            name.contains("冒险") ||
+            name.contains("桌游") ||
+            name.contains("棋牌") ||
+            name.contains("卡牌") ||
+            name.contains("休闲") ||
+            name.contains("竞速") ||
+            name.contains("角色扮演") ||
+            name.contains("模拟") ||
+            name.contains("策略") ||
+            name.contains("问答") ||
+            name.contains("文字游戏") {
+            return "games"
+        }
+        if name.contains("娱乐") ||
+            name.contains("entertainment") ||
+            name.contains("video") ||
+            name.contains("stream") ||
+            name.contains("music") ||
+            name.contains("tv") ||
+            name.contains("movie") ||
+            name.contains("音频") ||
+            name.contains("影视") ||
+            name.contains("音乐") {
+            return "entertainment"
+        }
+        if name.contains("信息") ||
+            name.contains("阅读") ||
+            name.contains("read") ||
+            name.contains("news") ||
+            name.contains("book") ||
+            name.contains("reference") ||
+            name.contains("magazine") ||
+            name.contains("newspaper") ||
+            name.contains("books") ||
+            name.contains("图书") ||
+            name.contains("新闻") ||
+            name.contains("报纸") ||
+            name.contains("杂志") ||
+            name.contains("参考") {
+            return "information"
+        }
+        if name.contains("健康") ||
+            name.contains("健身") ||
+            name.contains("health") ||
+            name.contains("fitness") ||
+            name.contains("medical") ||
+            name.contains("sports") ||
+            name.contains("sport") ||
+            name.contains("医疗") ||
+            name.contains("体育") ||
+            name.contains("运动") {
+            return "health"
+        }
+        if name.contains("创意") ||
+            name.contains("creative") ||
+            name.contains("art") ||
+            name.contains("drawing") ||
+            name.contains("illustration") ||
+            name.contains("animation") ||
+            name.contains("camera") ||
+            name.contains("editor") ||
+            name.contains("graphics") ||
+            name.contains("photo") ||
+            name.contains("design") ||
+            name.contains("video photo") ||
+            name.contains("graphics & design") ||
+            name.contains("photo & video") ||
+            name.contains("摄影") ||
+            name.contains("照片") ||
+            name.contains("录像") ||
+            name.contains("图形") ||
+            name.contains("设计") ||
+            name.contains("艺术") ||
+            name.contains("绘画") ||
+            name.contains("插画") ||
+            name.contains("动画") ||
+            name.contains("相机") ||
+            name.contains("编辑") {
+            return "creativity"
+        }
+        if name.contains("工具") ||
+            name.contains("utility") ||
+            name.contains("utilities") ||
+            name.contains("developer") ||
+            name.contains("productivity tools") ||
+            name.contains("developer tools") ||
+            name.contains("reference tools") ||
+            name.contains("weather") ||
+            name.contains("天气") ||
+            name.contains("开发工具") {
+            return "utilities"
+        }
+        if name.contains("效率") ||
+            name.contains("财务") ||
+            name.contains("productivity") ||
+            name.contains("finance") ||
+            name.contains("business") ||
+            name.contains("商务") {
+            return "productivity"
+        }
+        if name.contains("教育") ||
+            name.contains("education") ||
+            name.contains("learning") ||
+            name.contains("study") ||
+            name.contains("course") ||
+            name.contains("classroom") ||
+            name.contains("student") ||
+            name.contains("kids") ||
+            name.contains("学习") ||
+            name.contains("课程") ||
+            name.contains("课堂") ||
+            name.contains("学生") ||
+            name.contains("儿童") {
+            return "education"
+        }
+        if name.contains("旅行") ||
+            name.contains("travel") ||
+            name.contains("local") ||
+            name.contains("trip") ||
+            name.contains("tour") ||
+            name.contains("tourism") ||
+            name.contains("hotel") ||
+            name.contains("flight") ||
+            name.contains("airline") ||
+            name.contains("transport") ||
+            name.contains("transit") ||
+            name.contains("navigation") ||
+            name.contains("地图") ||
+            name.contains("nav") ||
+            name.contains("出行") ||
+            name.contains("旅游") ||
+            name.contains("酒店") ||
+            name.contains("航班") ||
+            name.contains("航空") ||
+            name.contains("交通") ||
+            name.contains("本地") {
+            return "travel"
+        }
+        if name.contains("购物") ||
+            name.contains("美食") ||
+            name.contains("shopping") ||
+            name.contains("food") ||
+            name.contains("drink") ||
+            name.contains("餐") ||
+            name.contains("catalog") ||
+            name.contains("food & drink") ||
+            name.contains("美食佳饮") ||
+            name.contains("餐饮") ||
+            name.contains("目录") {
+            return "shoppingFood"
+        }
+        if name.contains("其他") || name == "other" || name.contains("misc") || name.contains("miscellaneous") {
+            return "other"
+        }
+        if name.contains("生活") || name.contains("lifestyle") || name.contains("生活方式") {
+            return "other"
+        }
+        return nil
+    }
+
     private func weeklyReportPresentation(forWeekStart weekStart: Date) -> WeeklyReportPresentation? {
         let targetWeekStart = startOfWeekMonday(containing: weekStart)
+#if DEBUG
+        if isDebugWeeklyReportDemoEnabled,
+           let presentation = savedDebugWeeklyReportPresentation(forWeekStart: targetWeekStart) {
+            return presentation
+        }
+#endif
         let current = weeklySnapshot(forWeekStart: targetWeekStart)
 
         guard let current else { return nil }
@@ -3115,6 +3591,12 @@ struct ContentView: View {
     }
 
     private func weeklyReportPresentation(for current: ScreenTimeInsightsSnapshot) -> WeeklyReportPresentation {
+#if DEBUG
+        if isDebugWeeklyReportDemoEnabled,
+           let presentation = savedDebugWeeklyReportPresentation(forWeekStart: current.rangeStart) {
+            return presentation
+        }
+#endif
         let previousWeekStart = Calendar.current.date(
             byAdding: .day,
             value: -7,
@@ -3151,6 +3633,7 @@ struct ContentView: View {
             previousTotalMinutes: 0,
             buckets: buckets,
             topTargets: [],
+            topCategories: [],
             generatedAt: Date()
         )
     }
@@ -3399,11 +3882,12 @@ struct ContentView: View {
                     : "本周还没有高频使用目标。"
             }
             let targetKindText = top.kind == .app ? "App" : (AppLanguageRuntime.currentLanguage == .english ? "Website" : "网站")
+            let targetName = weeklyReportTargetDisplayName(for: top)
             if AppLanguageRuntime.currentLanguage == .english {
                 let targetType = top.kind == .app ? "app" : "website"
-                return "Top \(targetType) this week: \"\(top.name)\" for \(weeklyShortDuration(top.minutes))"
+                return "Top \(targetType) this week: \"\(targetName)\" for \(weeklyShortDuration(top.minutes))"
             }
-            return "本周重度使用\(targetKindText)「\(top.name)」共\(weeklyShortDuration(top.minutes))"
+            return "本周重度使用\(targetKindText)「\(targetName)」共\(weeklyShortDuration(top.minutes))"
         }()
 
         return ReportNavigationShell(
@@ -3565,18 +4049,94 @@ struct ContentView: View {
 
     private func weeklyTopTargetInsightRow(target: ScreenTimeInsightsTarget?, text: String) -> some View {
         HStack(spacing: 12) {
+            weeklyTopTargetLeadingIcon(target: target)
+            weeklyTopTargetSentenceView(target: target, fallbackText: text)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    @ViewBuilder
+    private func weeklyTopTargetSentenceView(target: ScreenTimeInsightsTarget?, fallbackText: String) -> some View {
+        if let target, target.kind == .app, let token = target.applicationToken {
+            let textColor = Color.white.opacity(0.86)
+            let subTextColor = Color.white.opacity(0.72)
+            if AppLanguageRuntime.currentLanguage == .english {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(token)
+                        .labelStyle(.titleOnly)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(textColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    Text("Top app this week for \(weeklyShortDuration(target.minutes))")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(subTextColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(token)
+                        .labelStyle(.titleOnly)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(textColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    Text("本周重度使用 App 共\(weeklyShortDuration(target.minutes))")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(subTextColor)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            Text(onlyLockL(fallbackText))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.86))
+                .lineLimit(2)
+        }
+    }
+
+    private func weeklyReportTargetDisplayName(for target: ScreenTimeInsightsTarget) -> String {
+        let trimmedStoredName = target.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedStoredName.isEmpty && !isApplicationFallbackName(trimmedStoredName) {
+            return trimmedStoredName
+        }
+
+        if let token = target.applicationToken {
+            let application = Application(token: token)
+            let fallback = AppLanguageRuntime.currentLanguage == .english ? "Selected App" : "已选应用"
+            let rawValue = application.localizedDisplayName ?? trimmedStoredName
+            let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty || isApplicationFallbackName(trimmed) ? fallback : trimmed
+        }
+
+        return trimmedStoredName
+    }
+
+    @ViewBuilder
+    private func weeklyTopTargetLeadingIcon(target: ScreenTimeInsightsTarget?) -> some View {
+        if let target, target.kind == .app, let token = target.applicationToken {
+            Label(token)
+                .labelStyle(.iconOnly)
+                .frame(width: 22, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        } else if let target, target.kind == .category, let token = target.categoryToken {
+            Label(token)
+                .labelStyle(.iconOnly)
+                .frame(width: 22, height: 22)
+        } else {
             Image(systemName: target.map { $0.kind == .app ? "app.fill" : "globe" } ?? "bolt.fill")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Color.white.opacity(0.85))
                 .frame(width: 22, height: 22)
-            Text(onlyLockL(text))
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.86))
-                .lineLimit(2)
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
     }
 
     private func weeklyReportLineChart(thisWeekHours: [Double], lastWeekHours: [Double], weekLabels: [String]) -> some View {
@@ -3972,33 +4532,25 @@ struct ContentView: View {
             insightsAuthorizationPromptCard
         } else {
             let range = insightsRange(for: selectedInsightsScope, anchor: insightsAnchorDate)
-            let rangeKey = insightsRangeCacheKey(scope: selectedInsightsScope, range: range)
-            let hasWarmRangeCache = warmedInsightsRangeKeys.contains(rangeKey)
-            let isSnapshotReady = hasMatchingInsightsSnapshot(for: selectedInsightsScope, range: range)
-            let shouldShowLoading = !hasWarmRangeCache && (isInsightsReportReloading || (!isSnapshotReady && !isInsightsSnapshotGateExpired))
-            ZStack {
-                DeviceActivityReport(
-                    selectedInsightsScope.reportContext,
-                    filter: insightsFilter(for: selectedInsightsScope, range: range)
-                )
-                .id("insights.\(selectedInsightsScope.rawValue).\(range.start.timeIntervalSince1970).\(insightsReportReloadID.uuidString)")
-                .frame(maxWidth: .infinity, minHeight: 520, alignment: .top)
-                .opacity(shouldShowLoading ? 0 : 1)
-
-                if shouldShowLoading {
-                    insightsReportPlaceholder
-                }
+#if DEBUG
+            if let debugSnapshot = debugInsightsDemoSnapshot(for: selectedInsightsScope, range: range) {
+                localInsightsReport(snapshot: debugSnapshot, scope: selectedInsightsScope)
+                    .frame(maxWidth: .infinity, minHeight: 520, alignment: .top)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            } else {
+                systemInsightsReportView(for: range)
             }
-            .frame(maxWidth: .infinity, minHeight: 520, alignment: .top)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+#else
+            systemInsightsReportView(for: range)
+#endif
         }
     }
 
     private var insightsAuthorizationPromptCard: some View {
         unifiedCenteredStateCard(
             icon: insightsAuthorizationBarIcon,
-            title: "开启权限后可查看屏幕时间分析",
-            buttonTitle: "开启权限",
+            title: onlyLockL("开启权限后可查看屏幕时间分析"),
+            buttonTitle: onlyLockL("开启权限"),
             isLoading: isSettingsAuthorizationRequesting,
             action: {
                 Task {
@@ -4225,6 +4777,43 @@ struct ContentView: View {
             .background(pageBackground)
     }
 
+    private func systemInsightsReportView(for range: InsightsRange) -> some View {
+        let rangeKey = insightsRangeCacheKey(scope: selectedInsightsScope, range: range)
+        let hasWarmRangeCache = warmedInsightsRangeKeys.contains(rangeKey)
+        let isSnapshotReady = hasMatchingInsightsSnapshot(for: selectedInsightsScope, range: range)
+        let shouldShowLoading = !hasWarmRangeCache && (isInsightsReportReloading || (!isSnapshotReady && !isInsightsSnapshotGateExpired))
+
+        return ZStack {
+            DeviceActivityReport(
+                selectedInsightsScope.reportContext,
+                filter: insightsFilter(for: selectedInsightsScope, range: range)
+            )
+            .id("insights.\(selectedInsightsScope.rawValue).\(range.start.timeIntervalSince1970).\(insightsReportReloadID.uuidString)")
+            .frame(maxWidth: .infinity, minHeight: 520, alignment: .top)
+            .opacity(shouldShowLoading ? 0 : 1)
+
+            if shouldShowLoading {
+                insightsReportPlaceholder
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 520, alignment: .top)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+#if DEBUG
+    private func debugInsightsDemoSnapshot(
+        for scope: InsightsScope,
+        range: InsightsRange
+    ) -> ScreenTimeInsightsSnapshot? {
+        guard isDebugInsightsDemoEnabled, scope != .trend else { return nil }
+        return screenTimeInsightsStore.debugOverride(
+            for: scope.rawValue,
+            rangeStart: range.start,
+            rangeEnd: range.end
+        )
+    }
+#endif
+
     private func bestAvailableInsightsSnapshot(
         for scope: InsightsScope,
         range: InsightsRange
@@ -4305,6 +4894,7 @@ struct ContentView: View {
             previousTotalMinutes: 0,
             buckets: buckets,
             topTargets: [],
+            topCategories: [],
             generatedAt: Date()
         )
     }
@@ -4344,6 +4934,10 @@ struct ContentView: View {
                 localInsightsHeadlineBlock(snapshot: snapshot, scope: scope)
                 localInsightsChartCard(snapshot: snapshot)
 
+                if !snapshot.topCategories.isEmpty {
+                    localInsightsTopCategoriesStrip(snapshot: snapshot, scope: scope)
+                }
+
                 if !snapshot.topTargets.isEmpty {
                     localInsightsTargetsList(snapshot: snapshot)
                 }
@@ -4357,7 +4951,7 @@ struct ContentView: View {
 
     private func localInsightsHeadlineBlock(snapshot: ScreenTimeInsightsSnapshot, scope: InsightsScope) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(insightsDurationText(snapshot.totalMinutes))
+            Text(insightsDurationText(insightsHeadlineMinutes(for: snapshot, scope: scope)))
                 .font(.system(size: 34, weight: .heavy))
                 .foregroundStyle(primaryText)
                 .monospacedDigit()
@@ -4383,6 +4977,15 @@ struct ContentView: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(secondaryText)
             }
+        }
+    }
+
+    private func insightsHeadlineMinutes(for snapshot: ScreenTimeInsightsSnapshot, scope: InsightsScope) -> Int {
+        switch scope {
+        case .day:
+            return snapshot.totalMinutes
+        case .week, .trend:
+            return snapshot.averageMinutes
         }
     }
 
@@ -4492,11 +5095,9 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 ForEach(Array(displayedTargets.enumerated()), id: \.element.id) { index, target in
                     HStack(spacing: 10) {
-                        Text(target.name)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(primaryText)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.82)
+                        localInsightsTargetLeadingIcon(for: target, compact: false)
+
+                        localInsightsTargetNameView(for: target, compact: false)
 
                         Spacer(minLength: 0)
 
@@ -4520,6 +5121,145 @@ struct ContentView: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(dividerColor, lineWidth: 1)
             )
+        }
+    }
+
+    private func localInsightsTopCategoriesStrip(snapshot: ScreenTimeInsightsSnapshot, scope: InsightsScope) -> some View {
+        let displayedCategories = Array(snapshot.topCategories.prefix(4))
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(displayedCategories) { target in
+                    HStack(spacing: 6) {
+                        localInsightsTargetLeadingIcon(for: target, compact: true)
+                        Text(insightsShortDuration(target.minutes))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(primaryText)
+                            .monospacedDigit()
+                    }
+                        .padding(.horizontal, 8)
+                        .frame(height: 34)
+                        .background(cardBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(dividerColor, lineWidth: 1)
+                        )
+                }
+            }
+            .padding(.trailing, 18)
+        }
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black, location: 0.84),
+                    .init(color: .black.opacity(0.78), location: 0.91),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+#if DEBUG
+        .onAppear {
+            persistRenderedInsightsCategories(snapshot: snapshot, scope: scope)
+        }
+#endif
+    }
+
+#if DEBUG
+    private func persistRenderedInsightsCategories(
+        snapshot: ScreenTimeInsightsSnapshot,
+        scope: InsightsScope
+    ) {
+        let rows = snapshot.topCategories.map { target in
+            [
+                "name": target.name,
+                "canonical": canonicalInsightsCategoryKey(for: target.name) ?? "nil",
+                "minutes": String(target.minutes),
+                "hasCategoryToken": target.categoryToken == nil ? "false" : "true"
+            ]
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted]),
+              let string = String(data: data, encoding: .utf8) else {
+            return
+        }
+        debugSharedDefaults.set(string, forKey: "onlylock.debug.renderedTopCategories.\(scope.rawValue)")
+        debugSharedDefaults.synchronize()
+    }
+#endif
+
+    @ViewBuilder
+    private func localInsightsTargetLeadingIcon(
+        for target: ScreenTimeInsightsTarget,
+        compact: Bool
+    ) -> some View {
+        let side: CGFloat = compact ? 24 : 28
+        let corner: CGFloat = compact ? 7 : 8
+
+        if target.kind == .app, let token = target.applicationToken {
+            Label(token)
+                .labelStyle(.iconOnly)
+                .frame(width: side, height: side)
+                .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+        } else if target.kind == .category, let token = target.categoryToken {
+            Label(token)
+                .labelStyle(.iconOnly)
+                .frame(width: side, height: side)
+        } else if target.kind == .category {
+            insightsCategoryIcon(for: target.name, compact: compact)
+        } else {
+            Image(systemName: target.kind == .website ? "globe" : "square.grid.2x2")
+                .font(.system(size: compact ? 14 : 16, weight: .semibold))
+                .foregroundStyle(primaryText)
+                .frame(width: side, height: side)
+                .background(
+                    primaryText.opacity(colorScheme == .dark ? 0.14 : 0.06),
+                    in: RoundedRectangle(cornerRadius: corner, style: .continuous)
+                )
+        }
+    }
+
+    @ViewBuilder
+    private func insightsCategoryIcon(for name: String, compact: Bool) -> some View {
+        let side: CGFloat = compact ? 24 : 28
+        let symbol = categoryEmoji(for: name)
+
+        Text(symbol)
+            .font(.system(size: compact ? 17 : 20))
+            .frame(width: side, height: side)
+    }
+
+    private func categoryEmoji(for rawName: String) -> String {
+        switch canonicalInsightsCategoryKey(for: rawName) {
+        case "social":
+            return "💬"
+        case "games":
+            return "🚀"
+        case "entertainment":
+            return "🍿"
+        case "information":
+            return "📖"
+        case "health":
+            return "🚴"
+        case "creativity":
+            return "🎨"
+        case "utilities":
+            return "🧮"
+        case "productivity":
+            return "📊"
+        case "education":
+            return "🌍"
+        case "travel":
+            return "🧳"
+        case "shoppingFood":
+            return "🛍️"
+        case "other":
+            return "🧩"
+        case .none:
+            print("[OnlyLockInsights][CategoryIconFallback][App] unmapped category name=\(rawName)")
+            return "🧩"
+        default:
+            return "🧩"
         }
     }
 
@@ -4657,6 +5397,36 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func localInsightsTargetNameView(
+        for target: ScreenTimeInsightsTarget,
+        compact: Bool
+    ) -> some View {
+        let fontSize: CGFloat = compact ? 12 : 18
+        let weight: Font.Weight = .semibold
+
+        if target.kind == .app,
+           let token = target.applicationToken,
+           isApplicationFallbackName(target.name) {
+            Label(token)
+                .labelStyle(.titleOnly)
+                .font(.system(size: fontSize, weight: weight))
+                .foregroundStyle(primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        } else {
+            Text(target.name)
+                .font(.system(size: fontSize, weight: weight))
+                .foregroundStyle(primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+    }
+
+    private func isApplicationFallbackName(_ value: String) -> Bool {
+        value.hasPrefix("Selected App ") || value.hasPrefix("已选 App ")
     }
 
     private func insightsRangeText(range: InsightsRange, scope: InsightsScope) -> String {
@@ -4911,6 +5681,22 @@ struct ContentView: View {
 
             if isDebugStreakOverrideEnabled {
                 debugStreakOverrideControls
+            }
+
+            debugToggleRow(title: "分析页 Demo 数据", isOn: isDebugInsightsDemoEnabled) {
+                isDebugInsightsDemoEnabled.toggle()
+            }
+
+            if isDebugInsightsDemoEnabled {
+                debugInsightsDemoControls
+            }
+
+            debugToggleRow(title: "周报 Demo 数据", isOn: isDebugWeeklyReportDemoEnabled) {
+                isDebugWeeklyReportDemoEnabled.toggle()
+            }
+
+            if isDebugWeeklyReportDemoEnabled {
+                debugWeeklyReportDemoControls
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -5312,6 +6098,1218 @@ struct ContentView: View {
         }
     }
 
+    private var debugInsightsEditableScope: InsightsScope {
+        selectedInsightsScope == .trend ? .week : selectedInsightsScope
+    }
+
+    private var debugInsightsEditableRange: InsightsRange {
+        insightsRange(for: debugInsightsEditableScope, anchor: insightsAnchorDate)
+    }
+
+    private struct DebugInsightsApplicationOption: Identifiable {
+        let id: String
+        let token: ApplicationToken
+        let name: String
+    }
+
+    private func debugInsightsApplicationName(for token: ApplicationToken, fallbackIndex: Int) -> String {
+        let application = Application(token: token)
+        let fallbackPrefix = AppLanguageRuntime.currentLanguage == .english ? "Selected App " : "已选 App "
+        let fallback = "\(fallbackPrefix)\(fallbackIndex + 1)"
+        let rawValue = application.localizedDisplayName ?? application.bundleIdentifier ?? fallback
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
+    }
+
+    private var availableDebugInsightsApplicationOptions: [DebugInsightsApplicationOption] {
+        let ordered = viewModel.orderedApplicationTokens
+        let liveSelection = Array(viewModel.appPickerSelection.applicationTokens)
+        let combined = ordered + liveSelection
+        var seen: [ApplicationToken] = []
+        var options: [DebugInsightsApplicationOption] = []
+
+        for token in combined {
+            guard !seen.contains(where: { $0 == token }) else { continue }
+            seen.append(token)
+            let index = options.count
+            options.append(
+                DebugInsightsApplicationOption(
+                    id: "debug.insights.app.\(index)",
+                    token: token,
+                    name: debugInsightsApplicationName(for: token, fallbackIndex: index)
+                )
+            )
+        }
+
+        return options
+    }
+
+    private var debugInsightsDemoControls: some View {
+        let scope = debugInsightsEditableScope
+        let range = debugInsightsEditableRange
+        let overrideSnapshot = currentDebugInsightsOverride(for: scope, range: range)
+        let targets = paddedDebugInsightsTargets(overrideSnapshot.topTargets)
+        let categories = paddedDebugInsightsCategories(overrideSnapshot.topCategories)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(onlyLockL("分析页 Demo 数据"))
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(secondaryText)
+
+            HStack(spacing: 6) {
+                debugInsightsScopeButton(label: onlyLockL("日"), scope: .day)
+                debugInsightsScopeButton(label: onlyLockL("周"), scope: .week)
+
+                Spacer(minLength: 0)
+
+                Button(onlyLockL("上一页")) {
+                    shiftDebugInsightsRange(by: -1)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 8)
+                .frame(height: 26)
+                .background(debugControlBackground, in: Capsule())
+
+                Button(onlyLockL("下一页")) {
+                    shiftDebugInsightsRange(by: 1)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 8)
+                .frame(height: 26)
+                .background(debugControlBackground, in: Capsule())
+            }
+
+            Text(insightsRangeText(range: range, scope: scope))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(secondaryText)
+
+            HStack(spacing: 6) {
+                Button(onlyLockL("填充好看数据")) {
+                    screenTimeInsightsStore.saveDebugOverride(
+                        makePrettyDebugInsightsOverride(for: scope, range: range)
+                    )
+                    warmedInsightsRangeKeys.insert(insightsRangeCacheKey(scope: scope, range: range))
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(debugControlSelectedBackground, in: Capsule())
+                .foregroundStyle(debugControlSelectedForeground)
+
+                Button(onlyLockL("清除当前页")) {
+                    screenTimeInsightsStore.removeDebugOverride(
+                        scope: scope.rawValue,
+                        rangeStart: range.start,
+                        rangeEnd: range.end
+                    )
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(debugControlBackground, in: Capsule())
+            }
+
+            if !availableDebugInsightsApplicationOptions.isEmpty {
+                HStack(spacing: 6) {
+                    Button(onlyLockL("用已选应用填充真实图标")) {
+                        applyDebugInsightsAvailableAppTokens(scope: scope, range: range)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(debugControlBackground, in: Capsule())
+
+                    Text(AppLanguageRuntime.currentLanguage == .english
+                         ? "\(availableDebugInsightsApplicationOptions.count) apps available"
+                         : "首页已选应用 \(availableDebugInsightsApplicationOptions.count) 个")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(secondaryText)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text(onlyLockL("上期总时长"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(primaryText)
+
+                Spacer(minLength: 0)
+
+                debugInsightsDeltaButton("-30") {
+                    updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                        draft = draft.withPreviousTotalMinutes(max(0, draft.previousTotalMinutes - 30))
+                    }
+                }
+
+                debugInsightsMinutesInput(
+                    text: debugInsightsPreviousTotalMinutesBinding(scope: scope, range: range),
+                    width: 62
+                )
+
+                debugInsightsDeltaButton("+30") {
+                    updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                        draft = draft.withPreviousTotalMinutes(draft.previousTotalMinutes + 30)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(onlyLockL("柱图分钟"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(secondaryText)
+
+                ForEach(Array(overrideSnapshot.buckets.enumerated()), id: \.element.id) { index, bucket in
+                    HStack(spacing: 8) {
+                        Text(bucket.label)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(primaryText)
+                            .frame(width: 28, alignment: .leading)
+
+                        Spacer(minLength: 0)
+
+                        debugInsightsMinutesInput(
+                            text: debugInsightsBucketMinutesBinding(scope: scope, range: range, index: index),
+                            width: 58
+                        )
+
+                        debugInsightsDeltaButton("-15") {
+                            updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                draft = draft.withBucketMinutes(
+                                    index: index,
+                                    totalMinutes: max(0, draft.buckets[index].totalMinutes - 15)
+                                )
+                            }
+                        }
+
+                        debugInsightsDeltaButton("+15") {
+                            updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                draft = draft.withBucketMinutes(
+                                    index: index,
+                                    totalMinutes: draft.buckets[index].totalMinutes + 15
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(onlyLockL("Top App"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(secondaryText)
+
+                ForEach(Array(targets.enumerated()), id: \.offset) { index, target in
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(availableDebugInsightsApplicationOptions) { option in
+                                Button(option.name) {
+                                    updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                        let currentMinutes = paddedDebugInsightsTargets(draft.topTargets)[index].minutes
+                                        let preferredMinutes = currentMinutes > 0 ? currentMinutes : (scope == .day ? 60 : 120)
+                                        draft = draft
+                                            .withTargetApplicationToken(index: index, token: option.token, preferredName: option.name)
+                                            .withTargetMinutes(index: index, minutes: preferredMinutes)
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(debugInsightsTargetSelectionLabel(scope: scope, range: range, index: index))
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(primaryText)
+                            .padding(.horizontal, 10)
+                            .frame(height: 32)
+                            .background(debugControlBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        debugInsightsMinutesInput(
+                            text: debugInsightsTargetMinutesBinding(scope: scope, range: range, index: index),
+                            width: 58
+                        )
+
+                        debugInsightsDeltaButton("-15") {
+                            updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                draft = draft.withTargetMinutes(index: index, minutes: max(0, target.minutes - 15))
+                            }
+                        }
+
+                        debugInsightsDeltaButton("+15") {
+                            updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                draft = draft.withTargetMinutes(index: index, minutes: target.minutes + 15)
+                            }
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(onlyLockL("顶部类别"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(secondaryText)
+
+                ForEach(Array(categories.enumerated()), id: \.offset) { index, category in
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(debugInsightsCategoryOptions, id: \.self) { option in
+                                Button(option) {
+                                    debugInsightsCategoryNameBinding(scope: scope, range: range, index: index).wrappedValue = option
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(debugInsightsCategoryNameBinding(scope: scope, range: range, index: index).wrappedValue)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(primaryText)
+                            .padding(.horizontal, 10)
+                            .frame(height: 32)
+                            .background(debugControlBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        debugInsightsMinutesInput(
+                            text: debugInsightsCategoryMinutesBinding(scope: scope, range: range, index: index),
+                            width: 58
+                        )
+
+                        debugInsightsDeltaButton("-15") {
+                            let selectedCategoryName = debugInsightsCategoryNameBinding(scope: scope, range: range, index: index).wrappedValue
+                            updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                draft = draft
+                                    .withCategoryName(index: index, name: selectedCategoryName)
+                                    .withCategoryMinutes(index: index, minutes: max(0, category.minutes - 15))
+                            }
+                        }
+
+                        debugInsightsDeltaButton("+15") {
+                            let selectedCategoryName = debugInsightsCategoryNameBinding(scope: scope, range: range, index: index).wrappedValue
+                            updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                                draft = draft
+                                    .withCategoryName(index: index, name: selectedCategoryName)
+                                    .withCategoryMinutes(index: index, minutes: category.minutes + 15)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func debugInsightsScopeButton(label: String, scope: InsightsScope) -> some View {
+        let isSelected = debugInsightsEditableScope == scope
+
+        return Button(label) {
+            selectedInsightsScope = scope
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(isSelected ? debugControlSelectedForeground : primaryText)
+        .padding(.horizontal, 10)
+        .frame(height: 26)
+        .background(isSelected ? debugControlSelectedBackground : debugControlBackground, in: Capsule())
+    }
+
+    private func debugInsightsDeltaButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+            .buttonStyle(.plain)
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 8)
+            .frame(height: 26)
+            .background(debugControlBackground, in: Capsule())
+    }
+
+    private func debugInsightsMinutesInput(text: Binding<String>, width: CGFloat) -> some View {
+        HStack(spacing: 4) {
+            TextField("0", text: text)
+                .textFieldStyle(.plain)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(primaryText)
+                .frame(width: width)
+
+            Text(AppLanguageRuntime.currentLanguage == .english ? "m" : "分")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(secondaryText)
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 28)
+        .background(debugControlBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func shiftDebugInsightsRange(by direction: Int) {
+        let scope = debugInsightsEditableScope
+        if selectedInsightsScope != scope {
+            selectedInsightsScope = scope
+        }
+
+        let dayOffset = scope == .day ? direction : 7 * direction
+        if let next = Calendar.current.date(byAdding: .day, value: dayOffset, to: insightsAnchorDate) {
+            insightsAnchorDate = next
+        }
+    }
+
+    private func persistDebugInsightsDemoEnabled(_ isEnabled: Bool) {
+        if isEnabled, selectedInsightsScope == .trend {
+            selectedInsightsScope = .week
+        }
+        debugSharedDefaults.set(isEnabled, forKey: OnlyLockShared.debugScreenTimeInsightsOverrideEnabledKey)
+        debugSharedDefaults.synchronize()
+        screenTimeInsightsStore.refresh()
+        if isEnabled {
+            let scope = debugInsightsEditableScope
+            let range = debugInsightsEditableRange
+            warmedInsightsRangeKeys.insert(insightsRangeCacheKey(scope: scope, range: range))
+        }
+    }
+
+    private func currentDebugInsightsOverride(
+        for scope: InsightsScope,
+        range: InsightsRange
+    ) -> DebugInsightsSnapshotOverride {
+        screenTimeInsightsStore.debugOverrideModel(
+            for: scope.rawValue,
+            rangeStart: range.start,
+            rangeEnd: range.end
+        ) ?? makeEmptyDebugInsightsOverride(for: scope, range: range)
+    }
+
+    private func updateDebugInsightsOverride(
+        scope: InsightsScope,
+        range: InsightsRange,
+        mutate: (inout DebugInsightsSnapshotOverride) -> Void
+    ) {
+        var draft = currentDebugInsightsOverride(for: scope, range: range)
+        mutate(&draft)
+        screenTimeInsightsStore.saveDebugOverride(draft.sanitized)
+        warmedInsightsRangeKeys.insert(insightsRangeCacheKey(scope: scope, range: range))
+    }
+
+    private func debugInsightsTargetNameBinding(
+        scope: InsightsScope,
+        range: InsightsRange,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let target = paddedDebugInsightsTargets(currentDebugInsightsOverride(for: scope, range: range).topTargets)[index]
+                if let token = target.applicationToken, isApplicationFallbackName(target.name) {
+                    return debugInsightsApplicationName(for: token, fallbackIndex: index)
+                }
+                return target.name
+            },
+            set: { newValue in
+                updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                    draft = draft.withTargetName(index: index, name: newValue)
+                }
+            }
+        )
+    }
+
+    private func debugInsightsTargetSelectionLabel(
+        scope: InsightsScope,
+        range: InsightsRange,
+        index: Int
+    ) -> String {
+        let target = paddedDebugInsightsTargets(currentDebugInsightsOverride(for: scope, range: range).topTargets)[index]
+        if let token = target.applicationToken {
+            return debugInsightsApplicationName(for: token, fallbackIndex: index)
+        }
+        return AppLanguageRuntime.currentLanguage == .english ? "Choose app \(index + 1)" : "选择应用\(index + 1)"
+    }
+
+    private func debugInsightsPreviousTotalMinutesBinding(
+        scope: InsightsScope,
+        range: InsightsRange
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                String(currentDebugInsightsOverride(for: scope, range: range).previousTotalMinutes)
+            },
+            set: { newValue in
+                updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                    draft = draft.withPreviousTotalMinutes(debugMinutesValue(from: newValue))
+                }
+            }
+        )
+    }
+
+    private func debugInsightsBucketMinutesBinding(
+        scope: InsightsScope,
+        range: InsightsRange,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let buckets = currentDebugInsightsOverride(for: scope, range: range).buckets
+                guard buckets.indices.contains(index) else { return "0" }
+                return String(buckets[index].totalMinutes)
+            },
+            set: { newValue in
+                updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                    draft = draft.withBucketMinutes(index: index, totalMinutes: debugMinutesValue(from: newValue))
+                }
+            }
+        )
+    }
+
+    private func debugInsightsTargetMinutesBinding(
+        scope: InsightsScope,
+        range: InsightsRange,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let targets = paddedDebugInsightsTargets(currentDebugInsightsOverride(for: scope, range: range).topTargets)
+                guard targets.indices.contains(index) else { return "0" }
+                return String(targets[index].minutes)
+            },
+            set: { newValue in
+                updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                    draft = draft.withTargetMinutes(index: index, minutes: debugMinutesValue(from: newValue))
+                }
+            }
+        )
+    }
+
+    private func debugInsightsCategoryMinutesBinding(
+        scope: InsightsScope,
+        range: InsightsRange,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let categories = paddedDebugInsightsCategories(currentDebugInsightsOverride(for: scope, range: range).topCategories)
+                guard categories.indices.contains(index) else { return "0" }
+                return String(categories[index].minutes)
+            },
+            set: { newValue in
+                let selectedCategoryName = debugInsightsCategoryNameBinding(scope: scope, range: range, index: index).wrappedValue
+                updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                    draft = draft
+                        .withCategoryName(index: index, name: selectedCategoryName)
+                        .withCategoryMinutes(index: index, minutes: debugMinutesValue(from: newValue))
+                }
+            }
+        )
+    }
+
+    private func debugMinutesValue(from rawValue: String) -> Int {
+        let digits = rawValue.filter(\.isNumber)
+        guard let minutes = Int(digits) else { return 0 }
+        return max(0, minutes)
+    }
+
+    private func makeEmptyDebugInsightsOverride(
+        for scope: InsightsScope,
+        range: InsightsRange
+    ) -> DebugInsightsSnapshotOverride {
+        DebugInsightsSnapshotOverride(
+            scope: scope.rawValue,
+            rangeStart: range.start,
+            rangeEnd: range.end,
+            previousTotalMinutes: 0,
+            buckets: debugInsightsBucketLabels(for: scope).enumerated().map { index, label in
+                DebugInsightsBucketOverride(
+                    id: "\(scope.rawValue).bucket.\(index)",
+                    label: label,
+                    appMinutes: 0,
+                    webMinutes: 0
+                )
+            },
+            topTargets: [],
+            topCategories: []
+        )
+    }
+
+    private func makePrettyDebugInsightsOverride(
+        for scope: InsightsScope,
+        range: InsightsRange
+    ) -> DebugInsightsSnapshotOverride {
+        let preferredTargets = makePrettyDebugInsightsTargets(for: scope)
+        let preferredCategories = makePrettyDebugInsightsCategories(for: scope)
+
+        switch scope {
+        case .day:
+            let bucketLabels = debugInsightsBucketLabels(for: .day)
+            let minutes = [6, 10, 18, 36, 84, 71, 43, 24]
+            return DebugInsightsSnapshotOverride(
+                scope: scope.rawValue,
+                rangeStart: range.start,
+                rangeEnd: range.end,
+                previousTotalMinutes: 356,
+                buckets: zip(bucketLabels.indices, bucketLabels).map { index, label in
+                    DebugInsightsBucketOverride(
+                        id: "day.bucket.\(index)",
+                        label: label,
+                        appMinutes: minutes[index],
+                        webMinutes: 0
+                    )
+                },
+                topTargets: preferredTargets,
+                topCategories: preferredCategories
+            )
+        case .week:
+            let bucketLabels = debugInsightsBucketLabels(for: .week)
+            let minutes = [118, 142, 136, 165, 124, 88, 74]
+            return DebugInsightsSnapshotOverride(
+                scope: scope.rawValue,
+                rangeStart: range.start,
+                rangeEnd: range.end,
+                previousTotalMinutes: 975,
+                buckets: zip(bucketLabels.indices, bucketLabels).map { index, label in
+                    DebugInsightsBucketOverride(
+                        id: "week.bucket.\(index)",
+                        label: label,
+                        appMinutes: minutes[index],
+                        webMinutes: 0
+                    )
+                },
+                topTargets: preferredTargets,
+                topCategories: preferredCategories
+            )
+        case .trend:
+            return makeEmptyDebugInsightsOverride(for: scope, range: range)
+        }
+    }
+
+    private func makePrettyDebugInsightsTargets(for scope: InsightsScope) -> [DebugInsightsTargetOverride] {
+        let presetMinutes = scope == .day ? [92, 76, 53, 41] : [215, 182, 141, 109]
+        let fallbackNames = scope == .day
+            ? ["Instagram", "TikTok", "YouTube", "Safari"]
+            : ["Instagram", "TikTok", "YouTube", "Reddit"]
+        let appOptions = Array(availableDebugInsightsApplicationOptions.prefix(4))
+
+        return presetMinutes.indices.map { index in
+            if appOptions.indices.contains(index) {
+                let option = appOptions[index]
+                return DebugInsightsTargetOverride(
+                    id: "demo.target.\(index)",
+                    name: option.name,
+                    minutes: presetMinutes[index],
+                    kind: .app,
+                    applicationToken: option.token
+                )
+            }
+
+            return DebugInsightsTargetOverride(
+                id: "demo.target.\(index)",
+                name: fallbackNames[index],
+                minutes: presetMinutes[index],
+                kind: .app,
+                applicationToken: nil
+            )
+        }
+    }
+
+    private func makePrettyDebugInsightsCategories(for scope: InsightsScope) -> [DebugInsightsTargetOverride] {
+        let presetMinutes = scope == .day
+            ? [148, 121, 96, 84, 71, 63, 52, 44, 37, 29, 21, 12]
+            : [338, 291, 247, 214, 186, 167, 141, 126, 109, 93, 74, 52]
+        let fallbackNames = AppLanguageRuntime.currentLanguage == .english
+            ? ["Social", "Games", "Entertainment", "Information & Reading", "Health & Fitness", "Creativity", "Utilities", "Productivity & Finance", "Education", "Travel", "Shopping & Food", "Other"]
+            : ["社交", "游戏", "娱乐", "信息与阅读", "健康与健身", "创意", "工具", "效率与财务", "教育", "旅行", "购物与美食", "其他"]
+
+        return presetMinutes.indices.map { index in
+            return DebugInsightsTargetOverride(
+                id: "demo.category.\(index)",
+                name: fallbackNames[index],
+                minutes: presetMinutes[index],
+                kind: .category,
+                applicationToken: nil
+            )
+        }
+    }
+
+    private var debugInsightsCategoryOptions: [String] {
+        if AppLanguageRuntime.currentLanguage == .english {
+            return ["Social", "Games", "Entertainment", "Information & Reading", "Health & Fitness", "Creativity", "Utilities", "Productivity & Finance", "Education", "Travel", "Shopping & Food", "Other"]
+        }
+        return ["社交", "游戏", "娱乐", "信息与阅读", "健康与健身", "创意", "工具", "效率与财务", "教育", "旅行", "购物与美食", "其他"]
+    }
+
+    private func paddedDebugInsightsCategories(_ categories: [DebugInsightsTargetOverride]) -> [DebugInsightsTargetOverride] {
+        var padded = categories
+        while padded.count < 4 {
+            padded.append(
+                DebugInsightsTargetOverride(
+                    id: "demo.category.\(padded.count)",
+                    name: debugInsightsCategoryOptions[min(padded.count, max(0, debugInsightsCategoryOptions.count - 1))],
+                    minutes: 0,
+                    kind: .category,
+                    applicationToken: nil,
+                    categoryToken: nil
+                )
+            )
+        }
+        return Array(padded.prefix(4))
+    }
+
+    private func debugInsightsCategoryNameBinding(
+        scope: InsightsScope,
+        range: InsightsRange,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let category = paddedDebugInsightsCategories(currentDebugInsightsOverride(for: scope, range: range).topCategories)[index]
+                let fallback = debugInsightsCategoryOptions[min(index, max(0, debugInsightsCategoryOptions.count - 1))]
+                return category.name.isEmpty ? fallback : category.name
+            },
+            set: { newValue in
+                updateDebugInsightsOverride(scope: scope, range: range) { draft in
+                    draft = draft.withCategoryName(index: index, name: newValue)
+                }
+            }
+        )
+    }
+
+    private func debugInsightsBucketLabels(for scope: InsightsScope) -> [String] {
+        switch scope {
+        case .day:
+            return ["00", "03", "06", "09", "12", "15", "18", "21"]
+        case .week:
+            if AppLanguageRuntime.currentLanguage == .english {
+                return ["M", "T", "W", "T", "F", "S", "S"]
+            }
+            return ["一", "二", "三", "四", "五", "六", "日"]
+        case .trend:
+            return []
+        }
+    }
+
+    private func paddedDebugInsightsTargets(_ targets: [DebugInsightsTargetOverride]) -> [DebugInsightsTargetOverride] {
+        var padded = targets
+        while padded.count < 4 {
+            padded.append(
+                DebugInsightsTargetOverride(
+                    id: "demo.target.\(padded.count)",
+                    name: "",
+                    minutes: 0,
+                    kind: .app,
+                    applicationToken: nil
+                )
+            )
+        }
+        return Array(padded.prefix(4))
+    }
+
+    private func applyDebugInsightsAvailableAppTokens(scope: InsightsScope, range: InsightsRange) {
+        let options = Array(availableDebugInsightsApplicationOptions.prefix(4))
+        guard !options.isEmpty else { return }
+        let defaultMinutes = scope == .day ? [92, 76, 53, 41] : [215, 182, 141, 109]
+
+        updateDebugInsightsOverride(scope: scope, range: range) { draft in
+            for (index, option) in options.enumerated() {
+                let currentMinutes = paddedDebugInsightsTargets(draft.topTargets)[index].minutes
+                let preferredMinutes = currentMinutes > 0 ? currentMinutes : defaultMinutes[index]
+                draft = draft
+                    .withTargetApplicationToken(index: index, token: option.token, preferredName: option.name)
+                    .withTargetMinutes(index: index, minutes: preferredMinutes)
+            }
+            if draft.topCategories.isEmpty {
+                draft = draft.withCategoryTargets(makePrettyDebugInsightsCategories(for: scope))
+            }
+        }
+    }
+
+#if DEBUG
+    private var debugWeeklyReportDemoControls: some View {
+        let weekStart = startOfWeekMonday(containing: debugWeeklyReportWeekStart)
+        let override = currentDebugWeeklyReportOverride(forWeekStart: weekStart)
+        let currentBuckets = Array(override.current.buckets.prefix(7))
+        let previousBuckets = Array(override.previous.buckets.prefix(7))
+        let currentTargets = paddedDebugWeeklyReportTargets(override.current.topTargets)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(onlyLockL("周报 Demo 数据"))
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(secondaryText)
+
+            HStack(spacing: 6) {
+                Button(onlyLockL("上一周")) {
+                    shiftDebugWeeklyReportWeek(by: -1)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 8)
+                .frame(height: 26)
+                .background(debugControlBackground, in: Capsule())
+
+                Text(debugWeeklyReportWeekText(weekStart: weekStart))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(primaryText)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Button(onlyLockL("下一周")) {
+                    shiftDebugWeeklyReportWeek(by: 1)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 8)
+                .frame(height: 26)
+                .background(debugControlBackground, in: Capsule())
+            }
+
+            HStack(spacing: 6) {
+                Button(onlyLockL("填充好看数据")) {
+                    screenTimeInsightsStore.saveDebugWeeklyReportOverride(
+                        makePrettyDebugWeeklyReportOverride(forWeekStart: weekStart)
+                    )
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(debugControlSelectedBackground, in: Capsule())
+                .foregroundStyle(debugControlSelectedForeground)
+
+                Button(onlyLockL("清除当前周")) {
+                    screenTimeInsightsStore.removeDebugWeeklyReportOverride(forWeekStart: weekStart)
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(debugControlBackground, in: Capsule())
+
+                Spacer(minLength: 0)
+
+                Button(onlyLockL("打开预览")) {
+                    let presentation = debugWeeklyReportPresentation(forWeekStart: weekStart)
+                    isFlipPreviewPanelExpanded = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        activeWeeklyReport = presentation
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 10)
+                .frame(height: 28)
+                .background(debugControlBackground, in: Capsule())
+            }
+
+            HStack(spacing: 8) {
+                debugWeeklyReportSummaryChip(
+                    title: onlyLockL("本周总时长"),
+                    value: weeklyDurationText(override.current.asSnapshot.totalMinutes)
+                )
+                debugWeeklyReportSummaryChip(
+                    title: onlyLockL("上周总时长"),
+                    value: weeklyDurationText(override.previous.asSnapshot.totalMinutes)
+                )
+                debugWeeklyReportSummaryChip(
+                    title: onlyLockL("专注分"),
+                    value: "\(weeklyFocusScore(snapshot: override.current.asSnapshot))"
+                )
+            }
+
+            debugWeeklyReportBucketEditor(
+                title: onlyLockL("本周折线分钟"),
+                buckets: currentBuckets,
+                update: { index, delta in
+                    updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                        draft = draft.withCurrentBucketMinutes(index: index, totalMinutes: max(0, currentBuckets[index].totalMinutes + delta))
+                    }
+                },
+                minutesText: { index in
+                    debugWeeklyReportCurrentBucketMinutesBinding(weekStart: weekStart, index: index)
+                }
+            )
+
+            debugWeeklyReportBucketEditor(
+                title: onlyLockL("上周折线分钟"),
+                buckets: previousBuckets,
+                update: { index, delta in
+                    updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                        draft = draft.withPreviousBucketMinutes(index: index, totalMinutes: max(0, previousBuckets[index].totalMinutes + delta))
+                    }
+                },
+                minutesText: { index in
+                    debugWeeklyReportPreviousBucketMinutesBinding(weekStart: weekStart, index: index)
+                }
+            )
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(onlyLockL("Top App"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(secondaryText)
+
+                if !availableDebugInsightsApplicationOptions.isEmpty {
+                    Text(
+                        AppLanguageRuntime.currentLanguage == .english
+                            ? "Home selector apps \(availableDebugInsightsApplicationOptions.count)"
+                            : "首页已选应用 \(availableDebugInsightsApplicationOptions.count) 个"
+                    )
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(secondaryText)
+
+                    Button(
+                        AppLanguageRuntime.currentLanguage == .english
+                            ? "Auto-fill from Home selection"
+                            : "用首页已选应用自动填充"
+                    ) {
+                        guard let firstOption = availableDebugInsightsApplicationOptions.first else { return }
+                        updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                            let currentMinutes = paddedDebugWeeklyReportTargets(draft.current.topTargets)[0].minutes
+                            let preferredMinutes = currentMinutes > 0 ? currentMinutes : 120
+                            draft = draft
+                                .withCurrentTargetApplicationToken(index: 0, token: firstOption.token, preferredName: "")
+                                .withCurrentTargetMinutes(index: 0, minutes: preferredMinutes)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(debugControlSelectedBackground, in: Capsule())
+                    .foregroundStyle(debugControlSelectedForeground)
+                }
+
+                ForEach(Array(currentTargets.enumerated().prefix(1)), id: \.offset) { index, target in
+                    HStack(spacing: 8) {
+                        Menu {
+                            ForEach(availableDebugInsightsApplicationOptions) { option in
+                                Button {
+                                    updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                                        let currentMinutes = paddedDebugWeeklyReportTargets(draft.current.topTargets)[index].minutes
+                                        let preferredMinutes = currentMinutes > 0 ? currentMinutes : 120
+                                        draft = draft
+                                            .withCurrentTargetApplicationToken(index: index, token: option.token, preferredName: "")
+                                            .withCurrentTargetMinutes(index: index, minutes: preferredMinutes)
+                                    }
+                                } label: {
+                                    Label(option.token)
+                                        .labelStyle(.titleOnly)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                debugWeeklyReportTargetSelectionLabelView(weekStart: weekStart, index: index)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(primaryText)
+                            .padding(.horizontal, 10)
+                            .frame(height: 32)
+                            .background(debugControlBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+
+                        Text(weeklyShortDuration(target.minutes))
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(primaryText)
+                            .frame(width: 54, alignment: .trailing)
+
+                        debugInsightsDeltaButton("-15") {
+                            updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                                draft = draft.withCurrentTargetMinutes(index: index, minutes: max(0, target.minutes - 15))
+                            }
+                        }
+
+                        debugInsightsDeltaButton("+15") {
+                            updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                                draft = draft.withCurrentTargetMinutes(index: index, minutes: target.minutes + 15)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func debugWeeklyReportBucketEditor(
+        title: String,
+        buckets: [DebugInsightsBucketOverride],
+        update: @escaping (_ index: Int, _ delta: Int) -> Void,
+        minutesText: @escaping (_ index: Int) -> Binding<String>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(secondaryText)
+
+            ForEach(Array(buckets.enumerated()), id: \.element.id) { index, bucket in
+                HStack(spacing: 8) {
+                    Text(bucket.label)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(primaryText)
+                        .frame(width: 28, alignment: .leading)
+
+                    Spacer(minLength: 0)
+
+                    debugInsightsMinutesInput(
+                        text: minutesText(index),
+                        width: 58
+                    )
+
+                    debugInsightsDeltaButton("-15") {
+                        update(index, -15)
+                    }
+
+                    debugInsightsDeltaButton("+15") {
+                        update(index, 15)
+                    }
+                }
+            }
+        }
+    }
+
+    private func debugWeeklyReportCurrentBucketMinutesBinding(
+        weekStart: Date,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let buckets = Array(currentDebugWeeklyReportOverride(forWeekStart: weekStart).current.buckets.prefix(7))
+                guard buckets.indices.contains(index) else { return "0" }
+                return String(buckets[index].totalMinutes)
+            },
+            set: { newValue in
+                updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                    draft = draft.withCurrentBucketMinutes(index: index, totalMinutes: debugMinutesValue(from: newValue))
+                }
+            }
+        )
+    }
+
+    private func debugWeeklyReportPreviousBucketMinutesBinding(
+        weekStart: Date,
+        index: Int
+    ) -> Binding<String> {
+        Binding(
+            get: {
+                let buckets = Array(currentDebugWeeklyReportOverride(forWeekStart: weekStart).previous.buckets.prefix(7))
+                guard buckets.indices.contains(index) else { return "0" }
+                return String(buckets[index].totalMinutes)
+            },
+            set: { newValue in
+                updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                    draft = draft.withPreviousBucketMinutes(index: index, totalMinutes: debugMinutesValue(from: newValue))
+                }
+            }
+        )
+    }
+
+    private func debugWeeklyReportSummaryChip(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(secondaryText)
+            Text(value)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(primaryText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(debugControlBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func shiftDebugWeeklyReportWeek(by direction: Int) {
+        if let next = Calendar.current.date(byAdding: .day, value: direction * 7, to: debugWeeklyReportWeekStart) {
+            debugWeeklyReportWeekStart = startOfWeekMonday(containing: next)
+        }
+    }
+
+    private func persistDebugWeeklyReportDemoEnabled(_ isEnabled: Bool) {
+        debugSharedDefaults.set(isEnabled, forKey: OnlyLockShared.debugWeeklyReportOverrideEnabledKey)
+        debugSharedDefaults.synchronize()
+        screenTimeInsightsStore.refresh()
+    }
+
+    private func currentDebugWeeklyReportOverride(forWeekStart weekStart: Date) -> DebugWeeklyReportOverride {
+        let normalizedWeekStart = startOfWeekMonday(containing: weekStart)
+        return screenTimeInsightsStore.debugWeeklyReportOverride(forWeekStart: normalizedWeekStart)
+            ?? makeEmptyDebugWeeklyReportOverride(forWeekStart: normalizedWeekStart)
+    }
+
+    private func updateDebugWeeklyReportOverride(
+        forWeekStart weekStart: Date,
+        mutate: (inout DebugWeeklyReportOverride) -> Void
+    ) {
+        var draft = currentDebugWeeklyReportOverride(forWeekStart: weekStart)
+        mutate(&draft)
+        screenTimeInsightsStore.saveDebugWeeklyReportOverride(draft.sanitized)
+    }
+
+    private func makeEmptyDebugWeeklyReportOverride(forWeekStart weekStart: Date) -> DebugWeeklyReportOverride {
+        let normalizedWeekStart = startOfWeekMonday(containing: weekStart)
+        let previousWeekStart = Calendar.current.date(byAdding: .day, value: -7, to: normalizedWeekStart) ?? normalizedWeekStart
+        return DebugWeeklyReportOverride(
+            weekStart: normalizedWeekStart,
+            current: makeEmptyDebugInsightsOverride(for: .week, range: InsightsRange(
+                start: normalizedWeekStart,
+                end: Calendar.current.date(byAdding: .day, value: 7, to: normalizedWeekStart) ?? normalizedWeekStart
+            )),
+            previous: makeEmptyDebugInsightsOverride(for: .week, range: InsightsRange(
+                start: previousWeekStart,
+                end: Calendar.current.date(byAdding: .day, value: 7, to: previousWeekStart) ?? previousWeekStart
+            ))
+        )
+    }
+
+    private func makePrettyDebugWeeklyReportOverride(forWeekStart weekStart: Date) -> DebugWeeklyReportOverride {
+        let normalizedWeekStart = startOfWeekMonday(containing: weekStart)
+        let previousWeekStart = Calendar.current.date(byAdding: .day, value: -7, to: normalizedWeekStart) ?? normalizedWeekStart
+        let labels = AppLanguageRuntime.currentLanguage == .english
+            ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            : ["一", "二", "三", "四", "五", "六", "日"]
+
+        let currentBuckets = [126, 141, 118, 132, 104, 95, 88]
+        let previousBuckets = [147, 158, 143, 151, 129, 122, 110]
+        let appOptions = Array(availableDebugInsightsApplicationOptions.prefix(1))
+        let fallbackNames = AppLanguageRuntime.currentLanguage == .english
+            ? ["YouTube", "TikTok", "Instagram"]
+            : ["YouTube", "TikTok", "Instagram"]
+
+        let currentTargets: [DebugInsightsTargetOverride] = (0..<1).map { index in
+            if appOptions.indices.contains(index) {
+                let option = appOptions[index]
+                return DebugInsightsTargetOverride(
+                    id: "weekly.demo.target.\(index)",
+                    name: option.name,
+                    minutes: [236][index],
+                    kind: .app,
+                    applicationToken: option.token,
+                    categoryToken: nil
+                )
+            }
+            return DebugInsightsTargetOverride(
+                id: "weekly.demo.target.\(index)",
+                name: fallbackNames[index],
+                minutes: [236][index],
+                kind: .app,
+                applicationToken: nil,
+                categoryToken: nil
+            )
+        }
+
+        return DebugWeeklyReportOverride(
+            weekStart: normalizedWeekStart,
+            current: DebugInsightsSnapshotOverride(
+                scope: "week",
+                rangeStart: normalizedWeekStart,
+                rangeEnd: Calendar.current.date(byAdding: .day, value: 7, to: normalizedWeekStart) ?? normalizedWeekStart,
+                previousTotalMinutes: previousBuckets.reduce(0, +),
+                buckets: zip(labels.indices, labels).map { index, label in
+                    DebugInsightsBucketOverride(id: "weekly.current.bucket.\(index)", label: label, appMinutes: currentBuckets[index], webMinutes: 0)
+                },
+                topTargets: currentTargets,
+                topCategories: []
+            ),
+            previous: DebugInsightsSnapshotOverride(
+                scope: "week",
+                rangeStart: previousWeekStart,
+                rangeEnd: Calendar.current.date(byAdding: .day, value: 7, to: previousWeekStart) ?? previousWeekStart,
+                previousTotalMinutes: 0,
+                buckets: zip(labels.indices, labels).map { index, label in
+                    DebugInsightsBucketOverride(id: "weekly.previous.bucket.\(index)", label: label, appMinutes: previousBuckets[index], webMinutes: 0)
+                },
+                topTargets: [],
+                topCategories: []
+            )
+        )
+    }
+
+    private func debugWeeklyReportWeekText(weekStart: Date) -> String {
+        let end = Calendar.current.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+        let formatter = DateFormatter()
+        formatter.locale = AppLanguageRuntime.currentLanguage.locale
+        if AppLanguageRuntime.currentLanguage == .english {
+            formatter.setLocalizedDateFormatFromTemplate("MMM d")
+        } else {
+            formatter.dateFormat = "M月d日"
+        }
+        return "\(formatter.string(from: weekStart)) - \(formatter.string(from: end))"
+    }
+
+    private func debugWeeklyReportPresentation(forWeekStart weekStart: Date) -> WeeklyReportPresentation {
+        let override = currentDebugWeeklyReportOverride(forWeekStart: weekStart).sanitized
+        return WeeklyReportPresentation(
+            id: "debug.weekly.\(Int(override.weekStart.timeIntervalSince1970))",
+            current: override.current.asSnapshot,
+            previous: override.previous.asSnapshot
+        )
+    }
+
+    private func savedDebugWeeklyReportPresentation(forWeekStart weekStart: Date) -> WeeklyReportPresentation? {
+        guard let override = screenTimeInsightsStore.debugWeeklyReportOverride(forWeekStart: weekStart)?.sanitized else {
+            return nil
+        }
+        return WeeklyReportPresentation(
+            id: "debug.weekly.\(Int(override.weekStart.timeIntervalSince1970))",
+            current: override.current.asSnapshot,
+            previous: override.previous.asSnapshot
+        )
+    }
+
+    private func debugWeeklyReportTargetNameBinding(weekStart: Date, index: Int) -> Binding<String> {
+        Binding(
+            get: {
+                let target = paddedDebugWeeklyReportTargets(currentDebugWeeklyReportOverride(forWeekStart: weekStart).current.topTargets)[index]
+                if let token = target.applicationToken, isApplicationFallbackName(target.name) {
+                    return debugInsightsApplicationName(for: token, fallbackIndex: index)
+                }
+                return target.name
+            },
+            set: { newValue in
+                updateDebugWeeklyReportOverride(forWeekStart: weekStart) { draft in
+                    draft = draft.withCurrentTargetName(index: index, name: newValue)
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func debugWeeklyReportTargetSelectionLabelView(weekStart: Date, index: Int) -> some View {
+        let target = paddedDebugWeeklyReportTargets(currentDebugWeeklyReportOverride(forWeekStart: weekStart).current.topTargets)[index]
+        if let token = target.applicationToken {
+            Label(token)
+                .labelStyle(.titleOnly)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        } else {
+            Text(AppLanguageRuntime.currentLanguage == .english ? "Choose app \(index + 1)" : "选择应用\(index + 1)")
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+    }
+
+    private func paddedDebugWeeklyReportTargets(_ targets: [DebugInsightsTargetOverride]) -> [DebugInsightsTargetOverride] {
+        var padded = targets
+        while padded.count < 1 {
+            padded.append(
+                DebugInsightsTargetOverride(
+                    id: "weekly.demo.target.\(padded.count)",
+                    name: "",
+                    minutes: 0,
+                    kind: .app,
+                    applicationToken: nil
+                )
+            )
+        }
+        return Array(padded.prefix(1))
+    }
+#endif
+
     private func applyDebugShield(at now: Date) {
         let activeRules = viewModel.rules.filter { rule in
             isDebugRuleActive(rule, at: now) && rule.hasAnyTarget
@@ -5624,8 +7622,8 @@ struct ContentView: View {
     private var targetsCardStats: some View {
         HStack(spacing: 12) {
             statTile(icon: .appStoreVector, value: "\(viewModel.selectedAppCount)", label: "APP")
-            statTile(icon: .globeVector, value: "\(viewModel.selectedWebCount)", label: "网站")
-            statTile(icon: .totalVector, value: "\(viewModel.totalTargetCount)", label: "总数")
+            statTile(icon: .globeVector, value: "\(viewModel.selectedWebCount)", label: onlyLockL("网站"))
+            statTile(icon: .totalVector, value: "\(viewModel.totalTargetCount)", label: onlyLockL("总数"))
         }
     }
 
@@ -5750,7 +7748,7 @@ struct ContentView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(secondaryText)
 
-            TextField("给这个锁定任务起个名字", text: $viewModel.taskName)
+            TextField(onlyLockL("给这个锁定任务起个名字"), text: $viewModel.taskName)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .font(.system(size: 18, weight: .medium))
@@ -5789,8 +7787,8 @@ struct ContentView: View {
 
         return unifiedCenteredStateCard(
             icon: emptyTaskVectorIcon.offset(x: 4),
-            title: "你还没有锁定任务",
-            buttonTitle: "去新建",
+            title: onlyLockL("你还没有锁定任务"),
+            buttonTitle: onlyLockL("去新建"),
             action: {
                 selectedTab = .create
             }
@@ -5959,7 +7957,11 @@ struct ContentView: View {
                 Text(titleText)
                     .font(.system(size: isActive ? 40 : (isEndedFallbackTitle ? 30 : 36), weight: .heavy))
                     .foregroundStyle(primaryText)
-                    .lineLimit(isActive ? 2 : 1)
+                    .lineLimit(
+                        isActive
+                            ? 2
+                            : (isEndedFallbackTitle && AppLanguageRuntime.currentLanguage == .english ? 2 : 1)
+                    )
                     .minimumScaleFactor(isEndedFallbackTitle ? 0.5 : 0.72)
                     .allowsTightening(!isActive)
             }
@@ -6012,6 +8014,14 @@ struct ContentView: View {
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(secondaryText)
                         .lineSpacing(3)
+                        .lineLimit(
+                            normalizedTaskName(rule.name) != nil
+                            && phase == .ended
+                            && AppLanguageRuntime.currentLanguage == .english
+                            ? 2
+                            : nil
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 HStack(alignment: hasStackedTargets ? .bottom : .center, spacing: 12) {
@@ -6204,13 +8214,13 @@ struct ContentView: View {
     private func timelinePhaseLabel(for phase: CurrentTaskPhase) -> String {
         switch phase {
         case .upcoming:
-            return "预定"
+            return onlyLockL("预定")
         case .active:
-            return "锁定中"
+            return onlyLockL("锁定中")
         case .paused:
-            return "已暂停"
+            return onlyLockL("已暂停")
         case .ended:
-            return "已完成"
+            return onlyLockL("已完成")
         }
     }
 
@@ -6274,7 +8284,11 @@ struct ContentView: View {
             .map(\.label)
 
         guard !labels.isEmpty else {
-            return "每周重复"
+            return AppLanguageRuntime.currentLanguage == .english ? "Repeats weekly" : "每周重复"
+        }
+
+        if AppLanguageRuntime.currentLanguage == .english {
+            return "Weekly " + labels.joined(separator: ", ")
         }
 
         return "每周" + labels.joined(separator: "、")
@@ -6504,6 +8518,7 @@ struct ContentView: View {
         let streakAccentFill = colorScheme == .dark ? Color.white : Color.black
         let streakAccentText = colorScheme == .dark ? Color.black : Color.white
         let streakIdleFill = colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08)
+        let streakTitleFontSize: CGFloat = AppLanguageRuntime.currentLanguage == .english ? 23 : 27
 
         return VStack(alignment: .leading, spacing: 12) {
             Text(onlyLockL("每日打卡"))
@@ -6525,9 +8540,9 @@ struct ContentView: View {
                         Text(
                             hasStreak
                                 ? (AppLanguageRuntime.currentLanguage == .english ? "\(streak)-day streak" : "连续打卡\(streak)天")
-                                : (AppLanguageRuntime.currentLanguage == .english ? "No check-in yet today" : "今天还未打卡")
+                                : (AppLanguageRuntime.currentLanguage == .english ? "No check-in yet" : "今天还未打卡")
                         )
-                            .font(.system(size: 27, weight: .heavy))
+                            .font(.system(size: streakTitleFontSize, weight: .heavy))
                             .foregroundStyle(primaryText)
                             .lineLimit(1)
                             .minimumScaleFactor(0.76)
@@ -6582,10 +8597,15 @@ struct ContentView: View {
 
     private func weekProgressDays(at now: Date) -> [WeekProgressDay] {
         let calendar = Calendar.current
-        let completedDays = rewardViewModel.snapshot.completedDays
+        let completedDays = completedLockDays(at: now)
         let today = calendar.startOfDay(for: now)
         let startOfWeek = OnlyLockShared.startOfWeekMonday(containing: today, calendar: calendar)
-        let symbols = ["M", "T", "W", "T", "F", "S", "S"]
+        let symbols: [String]
+        if AppLanguageRuntime.currentLanguage == .english {
+            symbols = ["M", "T", "W", "T", "F", "S", "S"]
+        } else {
+            symbols = ["一", "二", "三", "四", "五", "六", "七"]
+        }
 
         return symbols.enumerated().map { index, symbol in
             let dayDate = calendar.date(byAdding: .day, value: index, to: startOfWeek) ?? startOfWeek
@@ -6606,6 +8626,21 @@ struct ContentView: View {
     }
 
     private func completedLockDays(at now: Date) -> Set<Date> {
+#if DEBUG
+        if isDebugStreakOverrideEnabled {
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: now)
+            let streakDays = max(0, debugStreakOverrideDays)
+
+            guard streakDays > 0 else { return [] }
+
+            return Set((0..<streakDays).compactMap { offset in
+                calendar.date(byAdding: .day, value: -offset, to: today).map {
+                    calendar.startOfDay(for: $0)
+                }
+            })
+        }
+#endif
         _ = now
         return rewardViewModel.snapshot.completedDays
     }
@@ -8829,7 +10864,7 @@ private struct TargetsSelectionContentView: View {
             }
 
             VStack(spacing: 0) {
-                ForEach(Array(visibleSelectedApplicationTokens.enumerated()), id: \.offset) { item in
+                ForEach(Array(visibleSelectedApplicationTokens.enumerated()), id: \.element) { item in
                     let token = item.element
                     selectedAppRow(token, index: item.offset)
 

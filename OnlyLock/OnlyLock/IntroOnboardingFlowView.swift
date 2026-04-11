@@ -226,8 +226,9 @@ struct IntroOnboardingFlowView: View {
                     topBar
 
                     if let currentTitle {
+                        let isEnglish = AppLanguageRuntime.currentLanguage == .english
                         Text(AppLanguageRuntime.localized(for: currentTitle))
-                            .font(.system(size: currentStep == 6 ? 32 : (currentStep == 8 ? 30 : ((currentStep == 0 || currentStep == 1) ? 32 : 34)), weight: .bold))
+                            .font(.system(size: currentStep == 6 ? (isEnglish ? 28 : 32) : (currentStep == 8 ? 30 : ((currentStep == 0 || currentStep == 1) ? 32 : 34)), weight: .bold))
                             .foregroundStyle(primaryText)
                             .multilineTextAlignment(currentStep == 6 ? .leading : .center)
                             .lineLimit(
@@ -237,8 +238,9 @@ struct IntroOnboardingFlowView: View {
                             )
                             .minimumScaleFactor(
                                 ((currentStep == 1 || currentStep == 3) && AppLanguageRuntime.currentLanguage == .english) ? 0.78 :
-                                    ((currentStep == 0 || currentStep == 1) ? 0.68 : (currentStep == 8 ? 0.72 : (currentStep == 6 ? 0.92 : 0.82)))
+                                    ((currentStep == 0 || currentStep == 1) ? 0.68 : (currentStep == 8 ? 0.72 : (currentStep == 6 ? (isEnglish ? 0.78 : 0.92) : 0.82)))
                             )
+                            .fixedSize(horizontal: false, vertical: false)
                             .allowsTightening(currentStep == 8)
                             .frame(maxWidth: .infinity, alignment: currentStep == 6 ? .leading : .center)
                             .padding(.horizontal, currentStep == 6 ? 28 : ((currentStep == 0 || currentStep == 1) ? 20 : 24))
@@ -709,10 +711,11 @@ struct IntroOnboardingFlowView: View {
             VStack(spacing: 0) {
                 VStack(spacing: 28) {
                     Text(l("你喜欢目前的进展方式吗？"))
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: AppLanguageRuntime.currentLanguage == .english ? 19 : 24, weight: .bold))
                         .foregroundStyle(isDark ? Color.white : Color.black)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.84)
+                        .minimumScaleFactor(0.72)
+                        .allowsTightening(true)
                         .multilineTextAlignment(.center)
 
                     HStack(spacing: 22) {

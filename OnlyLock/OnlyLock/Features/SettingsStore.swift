@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import UserNotifications
+import UIKit
 
 @MainActor
 final class SettingsStore: ObservableObject {
@@ -52,16 +53,19 @@ final class SettingsStore: ObservableObject {
 
         var id: String { rawValue }
 
-        var title: String {
-            let isEnglish = AppLanguageRuntime.currentLanguage == .english
+        var localizationKey: String {
             switch self {
             case .system:
-                return isEnglish ? "System" : "系统"
+                return "系统"
             case .light:
-                return isEnglish ? "Light" : "浅色"
+                return "浅色"
             case .dark:
-                return isEnglish ? "Dark" : "深色"
+                return "深色"
             }
+        }
+
+        var title: String {
+            AppLanguageRuntime.localized(for: localizationKey)
         }
     }
 
@@ -108,6 +112,7 @@ final class SettingsStore: ObservableObject {
             appearancePreference = .system
             self.defaults.set(AppearancePreference.system.rawValue, forKey: OnlyLockShared.settingsAppearancePreferenceKey)
         }
+
     }
 
     var displayName: String {
